@@ -583,15 +583,21 @@ Provozní schéma !2"></textarea>
         <p class="dim" id="syncState" style="margin:0; font-size:13px">Vypnutá — postup je jen v tomhle zařízení.</p>
 
         <div id="syncOff" class="stack">
-          <label class="field"><span class="eyebrow">Adresa serveru</span>
-            <input type="text" id="syncBase" placeholder="https://kapybari-diplomka.ucet.workers.dev" autocomplete="off" spellcheck="false"></label>
-          <label class="field"><span class="eyebrow">Veřejný klíč pro upozornění</span>
-            <input type="text" id="syncVapid" placeholder="B… (nepovinné)" autocomplete="off" spellcheck="false"></label>
+          <p class="muted" style="margin:0; font-size:13.5px">Server je už nastavený. Zapnutím se postup začne ukládat i mimo tenhle telefon, takže ho máš stejný i na počítači a nepřijdeš o něj.</p>
           <button class="btn primary" id="syncStart" style="align-self:flex-start">Zapnout synchronizaci</button>
-          <div class="divider"><span>nebo</span></div>
-          <label class="field"><span class="eyebrow">Párovací kód z druhého zařízení</span>
-            <input type="text" id="syncCode" placeholder="capy:…" autocomplete="off" spellcheck="false"></label>
+          <div class="divider"><span>připojit se k druhému zařízení</span></div>
+          <label class="field"><span class="eyebrow">Párovací kód nebo odkaz</span>
+            <input type="text" id="syncCode" placeholder="capy:… nebo odkaz" autocomplete="off" spellcheck="false"></label>
           <button class="btn" id="syncJoin" style="align-self:flex-start">Připojit se</button>
+          <details>
+            <summary class="eyebrow" style="cursor:pointer">Jiný server</summary>
+            <div class="stack" style="margin-top:8px">
+              <label class="field"><span class="eyebrow">Adresa serveru</span>
+                <input type="text" id="syncBase" autocomplete="off" spellcheck="false"></label>
+              <label class="field"><span class="eyebrow">Veřejný klíč pro upozornění</span>
+                <input type="text" id="syncVapid" autocomplete="off" spellcheck="false"></label>
+            </div>
+          </details>
         </div>
 
         <div id="syncOn" class="stack" hidden>
@@ -1639,7 +1645,21 @@ function renderSchedule(){
 /* ==================================================================
    SYNCHRONIZACE — postup centrálně, ať přežije telefon
    ================================================================== */
-function syncCfg(){ return lsGet("capy.sync", null) || { base:"", room:"", token:"", vapid:"" }; }
+/* Server je předvyplněný, ať se nic neopisuje. Obojí je veřejné —
+   adresa Workeru i veřejný VAPID klíč; tajný klíč zůstává na serveru. */
+const SYNC_DEFAULT = {
+  base: "https://kapybari-diplomka.kryzar0g.workers.dev",
+  vapid: "BDePAP98GwPhUBsXKmBouD8sN0NEWg8607NRFqEQyUW2dyAYrna1fiEJQetk3v68LUXvw0jkY9vZpXoEAZoWd0s",
+};
+function syncCfg(){
+  const c = lsGet("capy.sync", null) || {};
+  return {
+    base: c.base || SYNC_DEFAULT.base,
+    room: c.room || "",
+    token: c.token || "",
+    vapid: c.vapid || SYNC_DEFAULT.vapid,
+  };
+}
 function syncSave(c){ lsSet("capy.sync", c); writeSwCfg(c); }
 function syncOn(){ const c = syncCfg(); return !!(c.base && c.room && c.token); }
 let syncRev = lsGet("capy.rev", 0) || 0;
@@ -1661,7 +1681,7 @@ function pairLink(c){
 }
 function readPair(code){
   try {
-    const raw = String(code).trim().replace(/^capy:/, "").replace(/-/g, "+").replace(/_/g, "/");
+    const raw = String(code).trim().split("#capy=").pop().replace(/^capy:/, "").replace(/-/g, "+").replace(/_/g, "/");
     const d = JSON.parse(atob(raw.padEnd(Math.ceil(raw.length / 4) * 4, "=")));
     if (!d.b || !d.r || !d.t) return null;
     return { base: String(d.b).replace(/\/+$/, ""), room: String(d.r), token: String(d.t), vapid: String(d.v || "") };
@@ -1824,14 +1844,14 @@ function renderSync(){
   $("syncOff").hidden = on;
   $("syncOn").hidden = !on;
   if (on) $("pairCode").textContent = pairCode(c);
-  else { $("syncBase").value = c.base || ""; $("syncVapid").value = c.vapid || ""; }
+  else { $("syncBase").value = c.base; $("syncVapid").value = c.vapid; }
   syncStatus();
 }
 
 $("syncStart").addEventListener("click", async () => {
-  const base = $("syncBase").value.trim().replace(/\/+$/, "");
-  if (!/^https:\/\/.+/.test(base)) { toast("Adresa musí začínat https://"); return; }
-  const c = { base, room: randKey(12), token: randKey(32), vapid: $("syncVapid").value.trim() };
+  const base = ($("syncBase").value.trim() || SYNC_DEFAULT.base).replace(/\/+$/, "");
+  if (!/^https:\/\/.+/.test(base)) { toast("Adresa serveru musí začínat https://"); return; }
+  const c = { base, room: randKey(12), token: randKey(32), vapid: $("syncVapid").value.trim() || SYNC_DEFAULT.vapid };
   syncSave(c); syncRev = 0; lsSet("capy.rev", 0);
   renderSync(); syncStatus("Zakládám…");
   await syncPush();
@@ -1894,7 +1914,7 @@ $("syncStop").addEventListener("click", () => {
   const o = modal(`<h2>Odpojit synchronizaci?</h2><p class="muted" style="font-size:13.5px; margin-top:8px">Postup zůstane v tomhle zařízení i na serveru. Jen se přestanou srovnávat.</p>
     <div class="row" style="margin-top:14px"><button class="btn ghost" data-close style="flex:1">Nechat</button><button class="btn primary" id="soYes" style="flex:1; background:var(--hp); color:#fff">Odpojit</button></div>`);
   o.querySelector("#soYes").addEventListener("click", () => {
-    lsSet("capy.sync", { base:"", room:"", token:"", vapid:"" });
+    lsSet("capy.sync", {});
     lsSet("capy.push", false); lsSet("capy.rev", 0); syncRev = 0;
     o.remove(); renderSync(); toast("Odpojeno.");
   });
