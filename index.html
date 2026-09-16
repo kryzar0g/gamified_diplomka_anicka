@@ -1769,13 +1769,39 @@ $("syncStart").addEventListener("click", async () => {
   await syncPush();
   toast("Zapnuto. Párovací kód vlož do druhého zařízení.");
 });
-$("syncJoin").addEventListener("click", async () => {
+/** Připojení nového zařízení: data se PŘEBÍRAJÍ ze serveru, neslučují.
+ *  Slučování je pro dvě zařízení, která už mají společný základ — při prvním
+ *  párování mají obě svoje vlastní úkoly s jinými id a vznikly by duplikáty. */
+async function syncAdopt(){
+  try {
+    const a = syncApi("/api/state");
+    const r = await fetch(a.url, { headers: a.headers });
+    if (r.status === 404) { await syncPush(); toast("Připojeno. Server byl prázdný, nahrál se postup z tohohle zařízení."); return; }
+    if (r.status === 403) { syncStatus("Server odmítl klíč — zkontroluj párovací kód."); toast("Kód nesedí."); return; }
+    if (!r.ok) { toast("Server neodpovídá."); return; }
+    const d = await r.json();
+    if (d.doc && Array.isArray(d.doc.quests) && d.doc.quests.length) {
+      state = d.doc;
+      lsSet("capy.state", state);
+    }
+    syncRev = d.rev; lsSet("capy.rev", syncRev); lsSet("capy.syncAt", Date.now());
+    fillProfileForm(); render(); syncStatus();
+    toast("Připojeno, postup převzatý z druhého zařízení.");
+  } catch(e){ toast("Připojení se nepovedlo."); }
+}
+
+$("syncJoin").addEventListener("click", () => {
   const c = readPair($("syncCode").value);
   if (!c) { toast("Tenhle kód se nepodařilo přečíst."); return; }
-  syncSave(c); syncRev = 0; lsSet("capy.rev", 0);
-  renderSync(); syncStatus("Stahuji…");
-  await syncPull();
-  toast("Připojeno.");
+  const o = modal(`<h2>Připojit tohle zařízení?</h2>
+    <p class="muted" style="font-size:13.5px; margin-top:8px">Stáhne se postup z druhého zařízení a <b>přepíše to, co máš teď tady</b>. Jestli tu máš něco, o co nechceš přijít, stáhni si nejdřív zálohu.</p>
+    <div class="row" style="margin-top:14px"><button class="btn ghost" data-close style="flex:1">Zpět</button><button class="btn primary" id="sjYes" style="flex:1">Připojit</button></div>`);
+  o.querySelector("#sjYes").addEventListener("click", async () => {
+    o.remove();
+    syncSave(c); syncRev = 0; lsSet("capy.rev", 0);
+    renderSync(); syncStatus("Stahuji…");
+    await syncAdopt();
+  });
 });
 $("syncCopy").addEventListener("click", async () => {
   const code = pairCode(syncCfg());
