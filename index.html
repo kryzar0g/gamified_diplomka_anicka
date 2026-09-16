@@ -605,6 +605,7 @@ Provozní schéma !2"></textarea>
             <button class="btn small" id="syncCopy">Zkopírovat kód</button>
             <button class="btn small" id="syncNow">Synchronizovat teď</button>
             <button class="btn small" id="pushOn">Zapnout upozornění</button>
+            <button class="btn small" id="pushTest">Zkusit poslat</button>
             <button class="btn small ghost" id="syncStop" style="color:var(--hp)">Odpojit</button>
           </div>
         </div>
@@ -1877,6 +1878,18 @@ $("syncCopy").addEventListener("click", async () => {
 });
 $("syncNow").addEventListener("click", async () => { syncStatus("Srovnávám…"); await syncPull(); await syncPush(); });
 $("pushOn").addEventListener("click", enablePush);
+$("pushTest").addEventListener("click", async () => {
+  if (!syncOn()) { toast("Nejdřív zapni synchronizaci."); return; }
+  toast("Posílám zkušební upozornění…");
+  try {
+    const a = syncApi("/api/test-push");
+    const r = await fetch(a.url, { method: "POST", headers: a.headers });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.sent > 0) toast(`Odesláno na ${d.sent} zařízení. Za chvíli to cinkne.`);
+    else if (r.ok) toast("Server nemá žádný zapnutý odběr. Zkus nejdřív Zapnout upozornění.");
+    else toast("Odeslat se to nepovedlo.");
+  } catch(e){ toast("Server neodpovídá."); }
+});
 $("syncStop").addEventListener("click", () => {
   const o = modal(`<h2>Odpojit synchronizaci?</h2><p class="muted" style="font-size:13.5px; margin-top:8px">Postup zůstane v tomhle zařízení i na serveru. Jen se přestanou srovnávat.</p>
     <div class="row" style="margin-top:14px"><button class="btn ghost" data-close style="flex:1">Nechat</button><button class="btn primary" id="soYes" style="flex:1; background:var(--hp); color:#fff">Odpojit</button></div>`);
