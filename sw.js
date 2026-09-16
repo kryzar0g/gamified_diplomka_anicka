@@ -1,5 +1,5 @@
 /* Offline provoz. Verzi zvedni při každé změně appky, ať se stáhne nová. */
-const CACHE = "kapybari-diplomka-v6";
+const CACHE = "kapybari-diplomka-v7";
 const SHELL = [
   "./", "./index.html", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png",

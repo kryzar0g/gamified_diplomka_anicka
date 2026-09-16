@@ -317,6 +317,29 @@ label.field>span{display:block; margin-bottom:5px}
 .fold[open]>summary::after{content:"–"}
 .fold>.foldin{padding:0 14px 14px}
 
+/* uvítání a seznam prvních kroků */
+.steps{min-height:250px; display:flex; flex-direction:column; justify-content:center}
+.steps svg{max-width:132px; margin-inline:auto; display:block}
+.dots{display:flex; gap:6px; justify-content:center; margin-top:16px}
+.dots i{width:6px; height:6px; border-radius:99px; background:var(--line); display:block}
+.dots i.on{background:var(--blade); width:18px}
+.start{border:1.5px solid var(--blade); background:var(--panel); border-radius:var(--radius); padding:14px}
+.checks{display:flex; flex-direction:column; gap:2px; margin-top:10px}
+.chk{display:grid; grid-template-columns:24px 1fr auto; gap:10px; align-items:start; padding:8px 0; border-top:1px dashed var(--hair)}
+.chk:first-child{border-top:0}
+.chk .mark{width:22px; height:22px; border-radius:99px; border:1.5px solid var(--line); display:grid; place-items:center; margin-top:1px}
+.chk.ok .mark{background:var(--xp); border-color:transparent}
+.chk .mark svg{width:12px; height:12px; fill:none; stroke:var(--bg); stroke-width:3.5; stroke-linecap:round; stroke-linejoin:round; opacity:0}
+.chk.ok .mark svg{opacity:1}
+.chk .t{font-size:14px; font-weight:600; line-height:1.3}
+.chk.ok .t{color:var(--ink3); text-decoration:line-through; font-weight:500}
+.chk .h{font-size:12.5px; color:var(--ink2); line-height:1.4; margin-top:2px}
+.chk.ok .h{display:none}
+.share{display:inline-flex; align-items:center; justify-content:center; width:19px; height:19px; vertical-align:-4px;
+  border:1.5px solid var(--ink2); border-radius:4px; position:relative; margin-inline:2px}
+.share::before{content:""; position:absolute; top:2px; width:1.5px; height:8px; background:var(--ink2)}
+.share::after{content:""; position:absolute; top:3px; width:6px; height:6px; border-top:1.5px solid var(--ink2); border-left:1.5px solid var(--ink2); transform:rotate(45deg)}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important}
 }
@@ -347,6 +370,15 @@ label.field>span{display:block; margin-bottom:5px}
   <main>
     <!-- ============ TAŽENÍ ============ -->
     <section id="view-camp" class="stack" style="padding-top:14px">
+      <div class="start" id="startBox" hidden>
+        <div class="row">
+          <h2>Než začneš</h2>
+          <span class="spacer"></span>
+          <button class="mv" id="startHide">skrýt</button>
+        </div>
+        <div class="checks" id="checkList"></div>
+      </div>
+
       <div class="acts" id="actList" role="tablist" aria-label="Etapy"></div>
 
       <div class="bosswrap">
@@ -518,6 +550,34 @@ Provozní schéma !2"></textarea>
         <label class="switch"><input type="checkbox" id="krystofMode"> <span>Režim Kryštof — můžu upravovat truhly</span></label>
       </div>
 
+      <details class="fold" id="helpFold">
+        <summary>Jak to funguje</summary>
+        <div class="foldin stack" style="font-size:13.5px; line-height:1.5">
+          <div>
+            <h3>Hra</h3>
+            <p class="muted" style="margin:5px 0 0">Práce je rozdělená na etapy a každá má svého bosse. Odškrtnutý úkol mu ubere životy — čím je úkol větší, tím větší zásah. Když padne poslední úkol etapy, padne i boss.</p>
+          </div>
+          <div>
+            <h3>Levely a kapybary</h3>
+            <p class="muted" style="margin:5px 0 0">Za úkoly dostáváš XP a rostou ti levely. Za každý level se přidá jedna kapybara do Kapybária — je jich šestnáct. Za některé levely se odemknou <b>truhly</b> se vzkazy a fotkami od Kryštofa. Dřív se do nich podívat nedá.</p>
+          </div>
+          <div>
+            <h3>Rozvrh — tohle je ta důležitá část</h3>
+            <p class="muted" style="margin:5px 0 0">Jakmile vyplníš termín odevzdání, čas do něj se rozdělí na týdenní bloky a úkoly se do nich rozhodí. V Rozvrhu vidíš <b>jen ten jeden týden, co zrovna běží</b> — zbytek tě nemusí zajímat.</p>
+            <p class="muted" style="margin:5px 0 0">Co za týden nestihneš, samo spadne do dalšího. Nikde se nehromadí červený dluh a nikdo ti nic nevyčítá. Když je toho moc, dej u úkolu <b>„odložit dál"</b>. Délku bloku si můžeš přepnout na 5, 10 nebo 14 dní.</p>
+          </div>
+          <div>
+            <h3>Když to nejde</h3>
+            <p class="muted" style="margin:5px 0 0">Na Tažení je každý den jedna věta, co zkusit. Nejmenší úkol ze seznamu je taky splněný úkol a boss z něj dostane zásah stejně.</p>
+          </div>
+          <div>
+            <h3>Kde se to ukládá</h3>
+            <p class="muted" style="margin:5px 0 0">V telefonu. Se zapnutou synchronizací i na serveru, takže máš stejná data na mobilu i na počítači. Zálohu si můžeš kdykoliv stáhnout níž jako soubor.</p>
+          </div>
+          <button class="btn small" id="replayIntro" style="align-self:flex-start">Přehrát uvítání znovu</button>
+        </div>
+      </details>
+
       <div class="panel stack">
         <h2>Synchronizace</h2>
         <p class="dim" id="syncState" style="margin:0; font-size:13px">Vypnutá — postup je jen v tomhle zařízení.</p>
@@ -535,11 +595,12 @@ Provozní schéma !2"></textarea>
         </div>
 
         <div id="syncOn" class="stack" hidden>
-          <div class="warnbox">
-            <div class="eyebrow">Párovací kód</div>
-            <b class="mono" id="pairCode" style="font-size:11.5px; word-break:break-all; display:block; margin-top:4px"></b>
-          </div>
-          <p class="dim" style="margin:0; font-size:12.5px">Vlož ho na druhém zařízení do pole „Párovací kód". Kdo ho má, vidí tvoje úkoly — nedávej ho nikam veřejně.</p>
+          <button class="btn primary" id="shareLink" style="align-self:flex-start">Poslat odkaz na připojení</button>
+          <p class="dim" style="margin:0; font-size:12.5px">Druhé zařízení se připojí jedním klepnutím na ten odkaz — nic se neopisuje. Kdo ho má, vidí tvoje úkoly, takže ho nedávej nikam veřejně.</p>
+          <details>
+            <summary class="eyebrow" style="cursor:pointer">Párovací kód k ručnímu opsání</summary>
+            <b class="mono" id="pairCode" style="font-size:11.5px; word-break:break-all; display:block; margin-top:6px"></b>
+          </details>
           <div class="row wrap">
             <button class="btn small" id="syncCopy">Zkopírovat kód</button>
             <button class="btn small" id="syncNow">Synchronizovat teď</button>
@@ -1040,7 +1101,7 @@ function render(){
   if (!state.acts.find(a => a.id === state.activeAct)) state.activeAct = state.acts[0].id;
   state.xp = totalXp();
   renderHeader(); renderActs(); renderBoss(); renderQuests(); renderStats(); renderLog(); renderToday();
-  renderCapys(); renderChests(); renderActEditor(); renderBackup(); renderSchedule();
+  renderCapys(); renderChests(); renderActEditor(); renderBackup(); renderSchedule(); renderStart();
 }
 
 function renderHeader(){
@@ -1588,12 +1649,18 @@ const randKey = (n) => {
   return [...b].map(x => "abcdefghijkmnpqrstuvwxyz23456789"[x % 32]).join("");
 };
 function pairCode(c){
-  try { return "capy:" + btoa(JSON.stringify({ b: c.base, r: c.room, t: c.token, v: c.vapid || "" })).replace(/=+$/, ""); }
-  catch(e){ return ""; }
+  try {
+    return "capy:" + btoa(JSON.stringify({ b: c.base, r: c.room, t: c.token, v: c.vapid || "" }))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");   // ať projde i v adrese
+  } catch(e){ return ""; }
+}
+function pairLink(c){
+  const code = pairCode(c).replace(/^capy:/, "");
+  return code ? location.origin + location.pathname + "#capy=" + code : "";
 }
 function readPair(code){
   try {
-    const raw = String(code).trim().replace(/^capy:/, "");
+    const raw = String(code).trim().replace(/^capy:/, "").replace(/-/g, "+").replace(/_/g, "/");
     const d = JSON.parse(atob(raw.padEnd(Math.ceil(raw.length / 4) * 4, "=")));
     if (!d.b || !d.r || !d.t) return null;
     return { base: String(d.b).replace(/\/+$/, ""), room: String(d.r), token: String(d.t), vapid: String(d.v || "") };
@@ -1821,6 +1888,130 @@ $("syncStop").addEventListener("click", () => {
 });
 
 /* ==================================================================
+   UVÍTÁNÍ A PRVNÍ KROKY — ať stačí poslat odkaz a nic vysvětlovat
+   ================================================================== */
+const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent);
+const isMobile = () => isIOS() || /Android/.test(navigator.userAgent);
+const pushReady = () => !!lsGet("capy.push", false) && typeof Notification !== "undefined" && Notification.permission === "granted";
+
+function checkItems(){
+  const items = [];
+  if (isMobile()) items.push({
+    ok: isStandalone(),
+    t: "Přidej si to na plochu",
+    h: isIOS()
+      ? `V Safari klepni dole na <span class="share"></span> a vyber <b>Přidat na plochu</b>. Pak to spouštěj odtamtud — jinak můžou po týdnu zmizet data a nepůjdou zapnout upozornění.`
+      : `V menu prohlížeče vyber <b>Přidat na plochu</b>. Appka pak běží na celou obrazovku a drží si data.`,
+  });
+  items.push({
+    ok: !!state.profile.deadline,
+    t: "Vyplň termín odevzdání",
+    h: "Bez data se nespočítá odpočet ani týdenní rozvrh.",
+    btn: "Nastavit", act: () => { showView("me"); setTimeout(() => $("fDeadline").focus(), 60); },
+  });
+  if (syncOn()) items.push({
+    ok: pushReady(),
+    t: "Zapni si připomínky",
+    h: isIOS() && !isStandalone()
+      ? "Půjde to, až appku spustíš z plochy."
+      : "Ráno ti přijde jedna věta o tom, co máš tenhle týden. Nic víc.",
+    btn: (isIOS() && !isStandalone()) ? null : "Zapnout",
+    act: () => { showView("me"); setTimeout(enablePush, 80); },
+  });
+  return items;
+}
+
+function renderStart(){
+  const box = $("startBox"); if (!box) return;
+  if (lsGet("capy.hideStart", false)) { box.hidden = true; return; }
+  const items = checkItems();
+  const hotovo = items.every(i => i.ok);
+  box.hidden = hotovo || !items.length;
+  if (box.hidden) return;
+  $("checkList").innerHTML = items.map((i, n) => `
+    <div class="chk${i.ok ? " ok" : ""}">
+      <span class="mark"><svg viewBox="0 0 24 24"><path d="M4 12l6 6L20 6"/></svg></span>
+      <span><span class="t">${esc(i.t)}</span><span class="h">${i.h}</span></span>
+      ${!i.ok && i.btn ? `<button class="btn small" data-step="${n}">${esc(i.btn)}</button>` : "<span></span>"}
+    </div>`).join("");
+  $("checkList").querySelectorAll("[data-step]").forEach(b =>
+    b.addEventListener("click", () => items[+b.dataset.step].act()));
+}
+
+const INTRO = [
+  { art: () => capyArt(CAPYS[0]),   h: "Ahoj!",
+    p: "Tohle je tvoje diplomka jako hra. Kryštof ji pro tebe postavil. Za dvacet vteřin ti ukážu, jak funguje." },
+  { art: () => bossArt("list"),      h: "Každá etapa má svého bosse",
+    p: "Práce je rozdělená na etapy a v každé sedí jedna příšera. Odškrtnutý úkol jí ubere životy — čím větší úkol, tím větší zásah. Když padne poslední úkol, padne i ona." },
+  { art: () => capyArt(CAPYS[11]),   h: "Kapybary a truhly",
+    p: "Za úkoly rostou levely a za každý přibude jedna kapybara do sbírky. Za některé se odemknou truhly se vzkazy a fotkami od Kryštofa. Dřív se do nich nedostaneš, ani kdybys chtěla." },
+  { art: () => capyArt(CAPYS[7]),    h: "Kouká se jen na tenhle týden",
+    p: "V Rozvrhu uvidíš jen ten týden, co zrovna běží. Co nestihneš, samo spadne do dalšího — nic se nehromadí a nikdo ti nic nevyčítá." },
+];
+function showIntro(){
+  lsSet("capy.seenIntro", true);
+  let i = 0;
+  const o = modal("");
+  const box = o.querySelector(".modal");
+  const draw = () => {
+    const s = INTRO[i];
+    box.innerHTML = `<div class="steps">
+        <div>${s.art()}</div>
+        <h2 style="margin-top:12px">${esc(s.h)}</h2>
+        <p class="muted" style="font-size:13.5px; margin:8px 0 0">${esc(s.p)}</p>
+      </div>
+      <div class="dots">${INTRO.map((_, n) => `<i class="${n === i ? "on" : ""}"></i>`).join("")}</div>
+      <div class="row" style="margin-top:14px">
+        ${i > 0 ? `<button class="btn ghost" id="ibk" style="flex:1">Zpět</button>` : ""}
+        <button class="btn primary" id="inx" style="flex:2">${i === INTRO.length - 1 ? "Jdeme na to" : "Dál"}</button>
+      </div>`;
+    box.querySelector("#inx").addEventListener("click", () => {
+      if (i === INTRO.length - 1) { o.remove(); renderStart(); }
+      else { i++; draw(); }
+    });
+    const bk = box.querySelector("#ibk");
+    if (bk) bk.addEventListener("click", () => { i--; draw(); });
+  };
+  draw();
+}
+
+/** Připojení odkazem — Kryštof pošle jeden link a nic se neopisuje. */
+function handlePairLink(){
+  const m = location.hash.match(/[#&]capy=([A-Za-z0-9+/=_-]+)/);
+  if (!m) return Promise.resolve(false);
+  const c = readPair(m[1]);
+  history.replaceState(null, "", location.pathname + location.search);   // ať kód nezůstane v adrese
+  if (!c) { toast("Odkaz na připojení se nepodařilo přečíst."); return Promise.resolve(false); }
+  return new Promise(res => {
+    const o = modal(`<div class="capyart">${capyArt(CAPYS[1])}</div>
+      <h2 style="margin-top:10px">Připojit se k postupu?</h2>
+      <p class="muted" style="font-size:13.5px; margin:8px 0 0">Tímhle odkazem se zařízení napojí na společná data — stejné úkoly na mobilu i na počítači. Co je uložené jen tady, se přepíše.</p>
+      <div class="row" style="margin-top:14px"><button class="btn ghost" id="pno" style="flex:1">Teď ne</button><button class="btn primary" id="pyes" style="flex:1">Připojit</button></div>`);
+    o.querySelector("#pyes").addEventListener("click", async () => {
+      o.remove(); syncSave(c); syncRev = 0; lsSet("capy.rev", 0);
+      renderSync(); syncStatus("Stahuji…");
+      await syncAdopt(); renderStart(); res(true);
+    });
+    o.querySelector("#pno").addEventListener("click", () => { o.remove(); res(false); });
+  });
+}
+
+$("startHide").addEventListener("click", () => { lsSet("capy.hideStart", true); renderStart(); });
+$("replayIntro").addEventListener("click", () => { $("helpFold").open = false; showIntro(); });
+$("shareLink").addEventListener("click", async () => {
+  const link = pairLink(syncCfg());
+  if (!link) { toast("Nejdřív zapni synchronizaci."); return; }
+  try {
+    if (navigator.share) await navigator.share({ title: "Kapybaří diplomka", url: link });
+    else { await navigator.clipboard.writeText(link); toast("Odkaz zkopírován. Stačí ho poslat."); }
+  } catch(e){
+    try { await navigator.clipboard.writeText(link); toast("Odkaz zkopírován."); }
+    catch(e2){ toast("Zkopíruj ho prosím ručně z pole níž."); }
+  }
+});
+
+/* ==================================================================
    NAVIGACE A FORMULÁŘE
    ================================================================== */
 const VIEWS = ["camp","capy","chest","plan","me"];
@@ -1924,6 +2115,13 @@ function fillProfileForm(){
   idb = await openIdb();
   photoUrls = await idbAll();
   await loadRewards();
+})();
+
+/* uvítání: připojení odkazem má přednost, ať se nepřekrývají modály */
+(async () => {
+  const pripojeno = await handlePairLink();
+  if (!lsGet("capy.seenIntro", false)) showIntro();
+  renderStart();
 })();
 
 /* synchronizace: srovnat po startu, při návratu do appky a jednou za dvě minuty */
