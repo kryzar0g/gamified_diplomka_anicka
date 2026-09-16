@@ -340,6 +340,41 @@ label.field>span{display:block; margin-bottom:5px}
 .share::before{content:""; position:absolute; top:2px; width:1.5px; height:8px; background:var(--ink2)}
 .share::after{content:""; position:absolute; top:3px; width:6px; height:6px; border-top:1.5px solid var(--ink2); border-left:1.5px solid var(--ink2); transform:rotate(45deg)}
 
+/* soustředění */
+.focus{border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); padding:14px}
+.focus.run{border-color:var(--blade)}
+.clock{font-family:"IBM Plex Mono",monospace; font-size:clamp(38px,11vw,54px); font-weight:600; line-height:1;
+  font-variant-numeric:tabular-nums; text-align:center; letter-spacing:-.02em}
+.focus.run .clock{color:var(--blade)}
+.ring{height:5px; background:var(--bg2); border-radius:99px; overflow:hidden; margin-top:10px}
+.ring i{display:block; height:100%; background:var(--blade); transition:width 1s linear}
+.ftask{font-size:13.5px; text-align:center; color:var(--ink2); margin-top:8px; min-height:1.4em}
+
+/* mám toho moc */
+.panic{background:var(--panel); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow);
+  max-width:400px; width:100%; padding:22px; max-height:86vh; overflow-y:auto}
+.panic .msg{font-size:15.5px; line-height:1.55; margin-top:14px}
+.panic .one{border:1.5px solid var(--blade); border-radius:12px; padding:12px; margin-top:14px; text-align:left}
+.panic .one .eyebrow{display:block; margin-bottom:4px}
+.panic .one b{font-size:15px; line-height:1.3}
+.sos{border:1px solid var(--line); background:transparent; color:var(--ink3); border-radius:9px;
+  padding:7px 11px; font-size:12.5px; width:100%; text-align:center}
+.sos:hover{border-color:var(--blade); color:var(--blade)}
+
+/* milníky */
+.mst{display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; padding:9px 0; border-top:1px dashed var(--hair)}
+.mst:first-child{border-top:0}
+.mst .d{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink3); white-space:nowrap}
+.mst .n{font-size:13.5px; font-weight:600}
+.mst.soon .d{color:var(--blade)}
+.mst.gone{opacity:.45}
+.mst.gone .n{text-decoration:line-through}
+.nextm{border-left:3px solid var(--gold); padding:9px 12px; background:var(--panel); border-radius:0 10px 10px 0; font-size:13.5px}
+
+/* poznámka u úkolu */
+.qnote{font-size:12.5px; color:var(--ink3); line-height:1.4; margin-top:4px; white-space:pre-wrap; word-break:break-word}
+.qnote:empty{display:none}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important}
 }
@@ -393,6 +428,29 @@ label.field>span{display:block; margin-bottom:5px}
 
         <div class="stack">
           <div class="today" id="todayBox"></div>
+
+          <div class="focus" id="focusBox">
+            <div class="row">
+              <span class="eyebrow" id="focusLabel">Soustředění</span>
+              <span class="spacer"></span>
+              <span class="eyebrow" id="focusToday"></span>
+            </div>
+            <div id="focusCapy" style="width:78px; margin:2px auto 6px"></div>
+            <div class="clock" id="focusClock">25:00</div>
+            <div class="ring"><i id="focusRing" style="width:0%"></i></div>
+            <div class="ftask" id="focusTask"></div>
+            <div class="row wrap" style="margin-top:10px; justify-content:center">
+              <select id="focusLen" style="width:auto" aria-label="Délka">
+                <option value="15">15 minut</option>
+                <option value="25" selected>25 minut</option>
+                <option value="45">45 minut</option>
+              </select>
+              <button class="btn primary" id="focusGo">Začít</button>
+              <button class="btn ghost" id="focusStop" hidden>Zastavit</button>
+            </div>
+          </div>
+
+          <button class="sos" id="sosBtn">Mám toho moc</button>
           <div class="panel">
             <div class="row" style="margin-bottom:6px">
               <h2 id="actTitle">Úkoly</h2>
@@ -425,7 +483,7 @@ label.field>span{display:block; margin-bottom:5px}
     <section id="view-capy" class="stack" hidden style="padding-top:14px">
       <div class="panel">
         <h2>Kapybárium</h2>
-        <p class="muted" style="margin:6px 0 0; font-size:13.5px">Každý level ti přivede jednu kapybaru. Bydlí tady, ať se máš na co dívat, když to nejde.</p>
+        <p class="muted" style="margin:6px 0 0; font-size:13.5px">Za každý level ti přijde jedna kapybara. Bydlí tady, ať se máš na co koukat, když to nejde.</p>
         <div class="row wrap" style="margin-top:10px">
           <span class="chip" id="capyCount">0 / 16</span>
           <span class="chip gold" id="capyNext"></span>
@@ -438,7 +496,7 @@ label.field>span{display:block; margin-bottom:5px}
     <section id="view-chest" class="stack" hidden style="padding-top:14px">
       <div class="panel">
         <h2>Truhly</h2>
-        <p class="muted" style="margin:6px 0 0; font-size:13.5px" id="chestIntro">Zamčené odměny od Kryštofa. Odemykají se levelem — nedá se to ošidit.</p>
+        <p class="muted" style="margin:6px 0 0; font-size:13.5px" id="chestIntro">Něco jsem ti sem schoval. Odemyká se to levelem, takže se k tomu dřív nedostaneš. Promiň.</p>
       </div>
       <div class="capys" id="chestGrid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>
       <div id="chestAdmin" hidden class="panel stack">
@@ -457,6 +515,7 @@ label.field>span{display:block; margin-bottom:5px}
       </div>
 
       <div id="schedBody" class="stack" hidden>
+        <div class="nextm" id="nextMst" hidden></div>
         <div class="week">
           <div class="hdr">
             <h2 id="weekTitle">Tenhle blok</h2>
@@ -476,6 +535,20 @@ label.field>span{display:block; margin-bottom:5px}
           <div class="tl" id="timeline" aria-hidden="true"></div>
           <div class="blocks" id="blockList"></div>
           <p class="dim" style="margin:0; font-size:12.5px" id="realityNote"></p>
+        </div>
+
+        <div class="panel stack">
+          <div class="row">
+            <h2>Důležitá data</h2>
+            <span class="spacer"></span>
+            <span class="eyebrow">konzultace, odevzdávky</span>
+          </div>
+          <div id="mstList"></div>
+          <form class="row wrap" id="mstAdd" style="gap:8px">
+            <input type="date" id="mstDate" style="width:auto" aria-label="Datum">
+            <input type="text" id="mstName" placeholder="Konzultace s vedoucím" aria-label="Co to je" style="flex:1 1 160px">
+            <button class="btn small" type="submit">+</button>
+          </form>
         </div>
 
         <div class="panel stack">
@@ -555,24 +628,25 @@ Provozní schéma !2"></textarea>
         <div class="foldin stack" style="font-size:13.5px; line-height:1.5">
           <div>
             <h3>Hra</h3>
-            <p class="muted" style="margin:5px 0 0">Práce je rozdělená na etapy a každá má svého bosse. Odškrtnutý úkol mu ubere životy — čím je úkol větší, tím větší zásah. Když padne poslední úkol etapy, padne i boss.</p>
+            <p class="muted" style="margin:5px 0 0">Rozdělil jsem ti práci na etapy a do každé posadil jednu příšeru. Odškrtnutý úkol jí ubere životy — čím větší úkol, tím větší rána. Když padne poslední úkol etapy, padne i ona.</p>
           </div>
           <div>
             <h3>Levely a kapybary</h3>
-            <p class="muted" style="margin:5px 0 0">Za úkoly dostáváš XP a rostou ti levely. Za každý level se přidá jedna kapybara do Kapybária — je jich šestnáct. Za některé levely se odemknou <b>truhly</b> se vzkazy a fotkami od Kryštofa. Dřív se do nich podívat nedá.</p>
+            <p class="muted" style="margin:5px 0 0">Za úkoly dostáváš XP a rostou ti levely. Za každý ti přijde jedna kapybara do Kapybária — je jich šestnáct. Za některé se odemknou <b>truhly</b>; schoval jsem do nich vzkazy a fotky. Podívat se dřív fakt nejde, zkoušel jsem to udělat tak, aby to nešlo obejít.</p>
           </div>
           <div>
             <h3>Rozvrh — tohle je ta důležitá část</h3>
-            <p class="muted" style="margin:5px 0 0">Jakmile vyplníš termín odevzdání, čas do něj se rozdělí na týdenní bloky a úkoly se do nich rozhodí. V Rozvrhu vidíš <b>jen ten jeden týden, co zrovna běží</b> — zbytek tě nemusí zajímat.</p>
-            <p class="muted" style="margin:5px 0 0">Co za týden nestihneš, samo spadne do dalšího. Nikde se nehromadí červený dluh a nikdo ti nic nevyčítá. Když je toho moc, dej u úkolu <b>„odložit dál"</b>. Délku bloku si můžeš přepnout na 5, 10 nebo 14 dní.</p>
+            <p class="muted" style="margin:5px 0 0">Jakmile vyplníš termín odevzdání, rozdělí se čas do něj na týdny a úkoly se do nich rozhodí samy. V Rozvrhu vidíš <b>jen ten jeden týden, co zrovna běží</b> — zbytek tě nemusí zajímat, od toho tam je.</p>
+            <p class="muted" style="margin:5px 0 0">Co za týden nestihneš, samo spadne do dalšího. Schválně to nikde nesvítí červeně a nikdo ti nic nevyčítá. Když je toho moc, dej u úkolu <b>„odložit dál"</b> — je to tam přesně na tohle. Délku týdne si můžeš přepnout na 5, 10 nebo 14 dní.</p>
           </div>
           <div>
             <h3>Když to nejde</h3>
-            <p class="muted" style="margin:5px 0 0">Na Tažení je každý den jedna věta, co zkusit. Nejmenší úkol ze seznamu je taky splněný úkol a boss z něj dostane zásah stejně.</p>
+            <p class="muted" style="margin:5px 0 0">Zmáčkni <b>Začít</b> u odpočtu a dělej dvacet minut cokoliv. Začít je ta těžká část, zbytek pak jde sám.</p>
+            <p class="muted" style="margin:5px 0 0">A když je toho fakt moc, je dole tlačítko <b>„Mám toho moc"</b>. Vyberu ti jednu jedinou věc — nebo ti řeknu, ať to na dnešek zabalíš. To druhé je taky v pořádku, sérii ti to nezruší.</p>
           </div>
           <div>
             <h3>Kde se to ukládá</h3>
-            <p class="muted" style="margin:5px 0 0">V telefonu. Se zapnutou synchronizací i na serveru, takže máš stejná data na mobilu i na počítači. Zálohu si můžeš kdykoliv stáhnout níž jako soubor.</p>
+            <p class="muted" style="margin:5px 0 0">V telefonu. Se zapnutou synchronizací i na serveru, takže máš stejné úkoly na mobilu i na počítači a nepřijdeš o ně, kdyby se něco stalo s telefonem. Zálohu si můžeš kdykoliv stáhnout níž jako soubor.</p>
           </div>
           <button class="btn small" id="replayIntro" style="align-self:flex-start">Přehrát uvítání znovu</button>
         </div>
@@ -632,7 +706,7 @@ Provozní schéma !2"></textarea>
         <button class="btn ghost small" id="resetProgress" style="color:var(--hp); align-self:flex-start">Vynulovat postup (úkoly zůstanou)</button>
       </div>
 
-      <p class="dim center" style="font-size:12px; padding-bottom:10px">Postaveno pro jednu konkrétní diplomantku. 🦫</p>
+      <p class="dim center" style="font-size:12px; padding-bottom:10px">Dělal jsem to pro tebe. — K. 🦫</p>
     </section>
   </main>
 </div>
@@ -907,14 +981,29 @@ function bossArt(kind){
 }
 
 const NUDGES = [
-  "Nastav si 25 minut a otevři jen jeden soubor. Nic víc.",
-  "Nejmenší úkol ze seznamu. Ten trvá deset minut a boss z toho stejně dostane zásah.",
-  "Když to nejde kreslit, čti. Rešerše je taky práce.",
-  "Vyfoť si dnešní stav obrazovky. Za měsíc to bude vypadat neuvěřitelně.",
-  "Napiš vedoucímu jednu otázku. I to je splněný krok.",
-  "Udělej to ošklivě. Opravit se to dá zítra, začít znova ne.",
-  "Dvacet minut ruční skici bez počítače. Vrátí ti to hlavu.",
-  "Vyber jeden výkres a dodělej u něj jen popisky.",
+  "Zmáčkni Začít a otevři jeden jediný soubor. Víc po tobě nechci.",
+  "Vezmi ten nejmenší úkol ze seznamu. Deset minut — a boss dostane ránu stejně.",
+  "Když to nejde kreslit, čti. Rešerše se taky počítá, fakt.",
+  "Vyfoť si, jak to teď vypadá. Za měsíc tomu nebudeš věřit.",
+  "Napiš vedoucímu jednu otázku. Odškrtnuté to bude taky.",
+  "Udělej to ošklivě. Opravit se dá zítra, začít znova ne.",
+  "Dvacet minut ruční skici, bez počítače. Vrátí ti to hlavu.",
+  "Vyber jeden výkres a dodělej u něj jen popisky. Nic víc.",
+  "Já vím, že se ti nechce. Zkus pět minut a pak se rozhodni.",
+  "Jedna kapybara je na levelu, co máš skoro na dosah. Jen říkám.",
+];
+
+/* co ti řeknu, když něco odškrtneš */
+const POCHVALY = [
+  "Tak. O jedno míň.",
+  "Vidíš, že to jde.",
+  "Hezky.",
+  "To je ono.",
+  "Jedeš.",
+  "Další dole.",
+  "Mám radost.",
+  "Tohle byla pořádná rána.",
+  "Za tohle si dej pauzu.",
 ];
 
 /* ==================================================================
@@ -1030,7 +1119,7 @@ function toggleQuest(id){
   q.done = !q.done;
   q.doneAt = q.done ? Date.now() : null;
   q.touched = Date.now();
-  if (q.done) { bumpStreak(); addLog(q.title, qxp(q)); hitBoss(qxp(q)); }
+  if (q.done) { bumpStreak(); addLog(q.title, qxp(q)); hitBoss(qxp(q)); toast(POCHVALY[Math.floor(Math.random() * POCHVALY.length)]); }
   else { addLog("Vráceno: " + q.title, -qxp(q)); }
   state.xp = totalXp();
   const afterLvl = levelFromXp(state.xp);
@@ -1074,12 +1163,12 @@ function celebrate(lvl){
   let html = `<div class="eyebrow">Level ${lvl}</div>`;
   if (c) {
     html += `<div class="capyart">${capyArt(c)}</div>
-      <h2 style="margin-top:8px">Přidala se ${esc(c.name)}</h2>
+      <h2 style="margin-top:8px">Přišla ${esc(c.name)}</h2>
       <p class="muted" style="font-size:13.5px; margin:6px 0 0">${esc(c.f)}</p>`;
   } else {
-    html += `<h2 style="margin-top:10px">Level ${lvl}</h2><p class="muted" style="font-size:13.5px">Jde ti to.</p>`;
+    html += `<h2 style="margin-top:10px">Level ${lvl}</h2><p class="muted" style="font-size:13.5px">Jde ti to. Fakt.</p>`;
   }
-  if (chests.length) html += `<p style="margin:12px 0 0; color:var(--gold); font-weight:700; font-size:14px">Odemkla se truhla: ${chests.map(c2 => esc(c2.title)).join(", ")}</p>`;
+  if (chests.length) html += `<p style="margin:12px 0 0; color:var(--gold); font-weight:700; font-size:14px">A něco jsem ti odemkl: ${chests.map(c2 => esc(c2.title)).join(", ")}</p>`;
   html += `<button class="btn primary" data-close style="margin-top:16px; width:100%">Dobře</button>`;
   modal(html);
   pushState();
@@ -1088,7 +1177,7 @@ function bossDown(a){
   modal(`<div class="eyebrow">Etapa dokončena</div>
     <div style="width:150px;height:130px;margin:8px auto 0;filter:grayscale(1);opacity:.4;transform:rotate(12deg)">${bossArt(a.art)}</div>
     <h2 style="margin-top:10px">${esc(a.boss)} padl</h2>
-    <p class="muted" style="font-size:13.5px; margin:6px 0 0">Celá etapa „${esc(a.title)}“ je hotová. Tohle už ti nikdo nevezme.</p>
+    <p class="muted" style="font-size:13.5px; margin:6px 0 0">Celou etapu „${esc(a.title)}“ máš za sebou. Tohle už ti nikdo nevezme.</p>
     <button class="btn primary" data-close style="margin-top:16px; width:100%">Jdeme dál</button>`);
 }
 let toastT;
@@ -1109,6 +1198,7 @@ function render(){
   state.xp = totalXp();
   renderHeader(); renderActs(); renderBoss(); renderQuests(); renderStats(); renderLog(); renderToday();
   renderCapys(); renderChests(); renderActEditor(); renderBackup(); renderSchedule(); renderStart();
+  renderMsts(); focusTick();
 }
 
 function renderHeader(){
@@ -1170,9 +1260,12 @@ function renderQuests(){
       </button>
       <div class="q-body">
         <div class="q-title">${esc(q.title)}</div>
+        <div class="qnote">${esc(q.note || "")}</div>
         <div class="q-meta">
           <span class="chip">${DIFF_LABEL[q.diff] || "M"}</span>
           <span class="chip xp">${qxp(q)} XP</span>
+          ${focusCfg().byQuest[q.id] ? `<span class="chip">${focusCfg().byQuest[q.id]} min</span>` : ""}
+          <button class="mv" data-note="${q.id}">${q.note ? "poznámka" : "+ poznámka"}</button>
         </div>
       </div>
       <button class="q-del" data-del="${q.id}" aria-label="Smazat úkol ${esc(q.title)}">
@@ -1185,6 +1278,23 @@ function renderQuests(){
     state.quests = state.quests.filter(q => q.id !== b.dataset.del);
     render(); pushState();
   }));
+  $("questList").querySelectorAll("[data-note]").forEach(b => b.addEventListener("click", () => editNote(b.dataset.note)));
+}
+
+/** Poznámka u úkolu — kam jsem to uložila, co ještě chybí, co říkal vedoucí. */
+function editNote(id){
+  const q = state.quests.find(x => x.id === id); if (!q) return;
+  const o = modal(`<h2>Poznámka</h2>
+    <p class="muted" style="font-size:13px; margin:6px 0 0; text-align:left">${esc(q.title)}</p>
+    <textarea id="qnTxt" style="min-height:110px; margin-top:10px" placeholder="Co ještě chybí, kam jsi to uložila, co říkal vedoucí…">${esc(q.note || "")}</textarea>
+    <div class="row" style="margin-top:14px"><button class="btn ghost" data-close style="flex:1">Zpět</button><button class="btn primary" id="qnSave" style="flex:1">Uložit</button></div>`);
+  const ta = o.querySelector("#qnTxt");
+  setTimeout(() => ta.focus(), 60);
+  o.querySelector("#qnSave").addEventListener("click", () => {
+    q.note = ta.value.trim().slice(0, 600);
+    q.touched = Date.now();
+    o.remove(); render(); pushState();
+  });
 }
 
 function renderStats(){
@@ -1198,6 +1308,7 @@ function renderStats(){
   $("statBlock").innerHTML = `
     <div class="stat"><b>${done}/${all}</b><span>úkolů</span></div>
     <div class="stat"><b>${state.acts.filter(a => actMax(a.id) > 0 && actDone(a.id) >= actMax(a.id)).length}/${state.acts.length}</b><span>bossů</span></div>
+    <div class="stat"><b>${Math.round((Object.values(focusCfg().byDay).reduce((a, b) => a + b, 0)) / 60)} h</b><span>u práce</span></div>
     <div class="stat"><b>${state.streak.best || 0}</b><span>nejdelší série</span></div>
     <div class="stat"><b>${tempo}</b><span>potřebné tempo</span></div>`;
 }
@@ -1227,8 +1338,8 @@ function renderToday(){
     }
   }
   $("todayBox").innerHTML = (doneToday > 0
-    ? `<div class="eyebrow">Dnes</div><div style="font-weight:700; margin-top:2px">${doneToday}× hotovo. Série ${s} ${s === 1 ? "den" : s < 5 ? "dny" : "dní"}.</div><div class="muted" style="font-size:13px; margin-top:3px">Zbytek dne je tvůj.</div>`
-    : `<div class="eyebrow">Dnešní postrčení</div><div style="font-weight:600; margin-top:2px; font-size:14px">${esc(NUDGES[idx])}</div>`) + weekLine;
+    ? `<div class="eyebrow">Dnes</div><div style="font-weight:700; margin-top:2px">Dneska už ${doneToday}×. Série ${s} ${s === 1 ? "den" : s < 5 ? "dny" : "dní"}.</div><div class="muted" style="font-size:13px; margin-top:3px">Zbytek dne je tvůj, klidně to zavři.</div>`
+    : `<div class="eyebrow">Ode mě na dnešek</div><div style="font-weight:600; margin-top:2px; font-size:14px">${esc(NUDGES[idx])}</div>`) + weekLine;
 }
 
 function renderCapys(){
@@ -1259,7 +1370,7 @@ function renderChests(){
   $("chestAdmin").hidden = !admin;
   $("chestIntro").textContent = admin
     ? "Režim Kryštof je zapnutý — vidíš i zamčené truhly a můžeš je upravovat."
-    : "Zamčené odměny od Kryštofa. Odemykají se levelem — nedá se to ošidit.";
+    : "Něco jsem ti sem schoval. Odemyká se to levelem, takže se k tomu dřív nedostaneš. Promiň.";
   const items = [...rewards.items].sort((a, b) => a.lvl - b.lvl);
   const ceil = levelCeil(lvl);
   $("chestGrid").innerHTML = items.map(r => {
@@ -1273,7 +1384,7 @@ function renderChests(){
             <div class="lockno">LEVEL ${r.lvl}</div>
           </div>
         </div>
-        <div class="chest-in"><div class="t dim">Zamčeno</div><div class="m">${ceil ? "Do dalšího levelu ti zbývá " + Math.max(0, ceil - state.xp) + " XP." : "Jsi na maximu."}</div></div>
+        <div class="chest-in"><div class="t dim">Ještě ne</div><div class="m">${ceil ? "Do dalšího levelu ti chybí " + Math.max(0, ceil - state.xp) + " XP." : "Jsi na maximu."}</div></div>
       </div>`;
     }
     return `<div class="chest${open ? "" : " locked"}">
@@ -1551,24 +1662,24 @@ function renderSchedule(){
   let calm;
   const dl0 = daysLeft();
   if (dl0 !== null && dl0 < 0) {
-    calm = "Termín odevzdání už je za tebou. Jestli ještě něco zbývá, posuň si datum v Profilu.";
+    calm = "Termín už je za tebou. Jestli ještě něco zbývá, posuň si datum v Profilu — nic se neděje.";
   } else if (idx !== cur) {
     calm = idx < cur
       ? `Tenhle blok už uplynul. Co v něm nezůstalo hotové, najdeš teď v aktuálním.`
       : `Tohle tě čeká později. Dívat se sem nemusíš — ale když máš náskok, klidně si něco přitáhni.`;
   } else if (!st.qs.length) {
-    calm = "Na tenhle blok nemáš nic. Buď si dej volno, nebo si přitáhni něco z dalšího.";
+    calm = "Na tenhle týden nemáš nic. Dej si volno — nebo si něco přitáhni z dalšího, jestli se ti chce.";
   } else if (!open.length) {
-    calm = "<b>Hotovo.</b> Tenhle blok máš splněný. Všechno další je náskok, ne povinnost.";
+    calm = "<b>Hotovo.</b> Tenhle týden máš splněný. Cokoliv dalšího už je náskok, ne povinnost.";
   } else {
     const dLeft = Math.max(1, Math.ceil((b.to.getTime() - Date.now()) / DAY));
-    calm = `Zbývá <b>${open.length} ${pl(open.length, "úkol", "úkoly", "úkolů")}</b> a ${dLeft} ${pl(dLeft, "den", "dny", "dní")}. Víc než tohle teď řešit nemusíš.`;
+    calm = `Zbývá <b>${open.length} ${pl(open.length, "úkol", "úkoly", "úkolů")}</b> a ${dLeft} ${pl(dLeft, "den", "dny", "dní")}. Nic jiného teď řešit nemusíš.`;
   }
   const carried = state.quests.filter(q => {
     const a = planCfg().assign[q.id];
     return !q.done && a !== undefined && a !== null && a < cur;
   }).length;
-  if (idx === cur && carried) calm += ` <span class="dim">Z minula se přeneslo ${carried} ${pl(carried, "úkol", "úkoly", "úkolů")} — s tím se počítá, nic se neděje.</span>`;
+  if (idx === cur && carried) calm += ` <span class="dim">Z minula se přeneslo ${carried} ${pl(carried, "úkol", "úkoly", "úkolů")} — to je normální, počítal jsem s tím.</span>`;
   if (idx !== cur) calm += ` <button class="mv" id="backToNow" style="margin-left:4px">zpět na teď</button>`;
   $("weekCalm").innerHTML = calm;
 
@@ -1617,15 +1728,15 @@ function renderSchedule(){
   const remain = state.quests.filter(q => !q.done).reduce((s, q) => s + qxp(q), 0);
   const slots = blocks.length - cur;
   let note = "";
-  if (!remain) note = "Všechno je hotové. Vážně.";
+  if (!remain) note = "Všechno hotové. Fakt všechno.";
   else if (p === null) note = `Zbývá ${remain} XP na ${slots} ${pl(slots, "blok", "bloky", "bloků")}. Až uplyne první blok, řeknu ti, jestli to tempo sedí.`;
   else {
     const need = Math.round(remain / Math.max(1, slots));
     const avg = Math.round(p);
-    if (avg === 0) note = `Zatím jsi v uplynulých blocích nic neodškrtla. Zkus zkrátit bloky nebo ubrat úkolů — menší cíl se plní líp.`;
-    else if (need > avg * 1.35) note = `Potřebuješ ${need} XP na blok, zatím děláš ${avg}. Je toho víc, než se stíhá — lepší teď ubrat rozsah nebo posunout termín než to řešit v posledním týdnu.`;
-    else if (need < avg * 0.7) note = `Máš náskok: stačilo by ${need} XP na blok a děláš ${avg}. Klidně zvolni.`;
-    else note = `Jsi v tempu: potřebuješ ${need} XP na blok a děláš ${avg}.`;
+    if (avg === 0) note = `Zatím jsi nic neodškrtla. Zkus zkrátit bloky nebo ubrat úkolů — menší cíl se plní líp. Nebo mi řekni, kde to vázne.`;
+    else if (need > avg * 1.35) note = `Potřebovala bys ${need} na blok a děláš ${avg}. Je toho víc, než se dá stihnout — radši teď ubereme rozsah nebo posuneme termín. Řekni mi o tom.`;
+    else if (need < avg * 0.7) note = `Máš náskok — stačilo by ${need} na blok a děláš ${avg}. Klidně zvolni.`;
+    else note = `Jsi v tempu: potřebuješ ${need} na blok a děláš ${avg}. Přesně tak to má vypadat.`;
   }
   $("realityNote").textContent = note;
   const dl = daysLeft();
@@ -1921,6 +2032,184 @@ $("syncStop").addEventListener("click", () => {
 });
 
 /* ==================================================================
+   SOUSTŘEDĚNÍ — odpočet, který odpracované minuty počítá k úkolu
+   ================================================================== */
+function focusCfg(){
+  if (!state.focus) state.focus = { byDay: {}, byQuest: {}, current: null };
+  if (!state.focus.byDay) state.focus.byDay = {};
+  if (!state.focus.byQuest) state.focus.byQuest = {};
+  return state.focus;
+}
+function focusTarget(){
+  const blocks = planBlocks();
+  const cur = blocks.length ? curBlockIdx(blocks) : 0;
+  const mine = state.quests.filter(q => !q.done && (!blocks.length || blockOf(q, cur, blocks) <= cur));
+  return mine[0] || state.quests.find(q => !q.done) || null;
+}
+function focusMinutesToday(){ return Math.round(focusCfg().byDay[todayKey()] || 0); }
+
+let focusTimer = null;
+function focusTick(){
+  const f = focusCfg(), c = f.current;
+  const box = $("focusBox");
+  const capy = $("focusCapy");
+  if (!c) {
+    box.classList.remove("run");
+    if (capy.dataset.stav !== "klid") { capy.innerHTML = capyArt(CAPYS[0]); capy.dataset.stav = "klid"; }
+    $("focusClock").textContent = String(parseInt($("focusLen").value) || 25).padStart(2, "0") + ":00";
+    $("focusRing").style.width = "0%";
+    $("focusGo").hidden = false; $("focusStop").hidden = true; $("focusLen").disabled = false;
+    const t = focusTarget();
+    $("focusTask").textContent = t ? "Pustíš se do: " + t.title : "Nemáš co rozpracovat.";
+    const m = focusMinutesToday();
+    $("focusToday").textContent = m ? "dnes " + m + " min" : "";
+    return;
+  }
+  const total = c.minutes * 60000;
+  const uply = Date.now() - c.startedAt;
+  const zbyva = Math.max(0, total - uply);
+  box.classList.add("run");
+  if (capy.dataset.stav !== "prace") { capy.innerHTML = capyArt(CAPYS[8]); capy.dataset.stav = "prace"; }
+  $("focusGo").hidden = true; $("focusStop").hidden = false; $("focusLen").disabled = true;
+  const s = Math.ceil(zbyva / 1000);
+  $("focusClock").textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  $("focusRing").style.width = Math.min(100, uply / total * 100) + "%";
+  const q = state.quests.find(x => x.id === c.questId);
+  $("focusTask").textContent = q ? q.title : "";
+  if (zbyva <= 0) focusEnd(true);
+}
+function focusStart(){
+  const t = focusTarget();
+  if (!t) { toast("Nemáš nic rozpracovaného. Přidej si úkol."); return; }
+  const f = focusCfg();
+  f.current = { questId: t.id, startedAt: Date.now(), minutes: parseInt($("focusLen").value) || 25 };
+  pushState(); focusTick();
+  if (!focusTimer) focusTimer = setInterval(focusTick, 1000);
+}
+function focusEnd(dokonceno){
+  const f = focusCfg(), c = f.current;
+  if (!c) return;
+  const min = Math.max(0, Math.round((Date.now() - c.startedAt) / 60000));
+  f.current = null;
+  if (min >= 1) {
+    f.byDay[todayKey()] = (f.byDay[todayKey()] || 0) + min;
+    f.byQuest[c.questId] = (f.byQuest[c.questId] || 0) + min;
+    bumpStreak();
+  }
+  pushState(); render();
+  const q = state.quests.find(x => x.id === c.questId);
+  if (!dokonceno) { toast(min >= 1 ? `Zapsal jsem ti ${min} min. I to se počítá.` : "Nic se neděje."); return; }
+  if (navigator.vibrate) { try { navigator.vibrate([25, 90, 25]); } catch(e){} }
+  modal(`<div class="capyart">${capyArt(CAPYS[3])}</div>
+    <div class="eyebrow" style="margin-top:8px">${min} minut v kuse</div>
+    <h2 style="margin-top:6px">A je to.</h2>
+    <p class="muted" style="font-size:13.5px; margin:8px 0 0">Tohle byla ta těžká část — začít. Dej si pauzu, nebo jeď dál, jak chceš.</p>
+    ${q ? `<div class="row" style="margin-top:16px">
+      <button class="btn ghost" data-close style="flex:1">Ještě nehotové</button>
+      <button class="btn primary" id="fdone" style="flex:1">Mám hotovo</button></div>`
+        : `<button class="btn primary" data-close style="margin-top:16px; width:100%">Dobře</button>`}`);
+  const b = document.getElementById("fdone");
+  if (b) b.addEventListener("click", () => {
+    document.querySelector(".overlay")?.remove();
+    if (q && !q.done) toggleQuest(q.id);
+  });
+}
+
+/* ==================================================================
+   MÁM TOHO MOC — jedna věc, nebo klidně žádná
+   ================================================================== */
+const SOS_ZPRAVY = [
+  "Tak zhluboka. Diplomka je velká, ale ty ji nemusíš udělat dneska — jenom kousek.",
+  "Vím, jak to teď vypadá. Ale ten seznam není úkol na dnešek, je to úkol na měsíce.",
+  "Nikdo po tobě nechce, abys to zvládla celé naráz. Ani já ne.",
+  "Když to dneska nepůjde, nic se nestane. Vážně nic. Zítra je taky den.",
+  "Připomínám: tohle je škola, ne záchranka. Nikdo neumře, když si dneska dáš pauzu.",
+];
+function restToday(){
+  if (!Array.isArray(state.rest)) state.rest = [];
+  const t = todayKey();
+  if (!state.rest.includes(t)) state.rest.push(t);
+  state.rest = state.rest.slice(-60);
+  state.streak.lastDay = t;          // volno sérii nezabíjí, jen ji nezvyšuje
+  pushState(); render();
+}
+function showSos(){
+  const t = focusTarget();
+  const zprava = SOS_ZPRAVY[new Date().getDate() % SOS_ZPRAVY.length];
+  const o = document.createElement("div");
+  o.className = "overlay"; o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true");
+  o.innerHTML = `<div class="panic burst">
+    <div class="capyart">${capyArt(CAPYS[7])}</div>
+    <h2 style="margin-top:10px; text-align:center">Dýchej.</h2>
+    <p class="msg">${esc(zprava)}</p>
+    ${t ? `<div class="one">
+        <span class="eyebrow">Jestli chceš něco udělat, tak tohle</span>
+        <b>${esc(t.title)}</b>
+        <div class="dim" style="font-size:12px; margin-top:4px">${qxp(t)} XP · odhadem ${t.diff === 1 ? "do hodiny" : t.diff === 2 ? "půl dne" : "delší"}</div>
+      </div>` : ""}
+    <div class="stack" style="margin-top:16px; gap:8px">
+      ${t ? `<button class="btn primary" id="sos15">Zkusím 15 minut</button>` : ""}
+      <button class="btn" id="sosRest">Dneska už ne</button>
+      <button class="btn ghost" id="sosClose">Zavřít</button>
+    </div>
+  </div>`;
+  document.body.appendChild(o);
+  const zavri = () => o.remove();
+  o.addEventListener("click", e => { if (e.target === o) zavri(); });
+  o.querySelector("#sosClose").addEventListener("click", zavri);
+  o.querySelector("#sosRest").addEventListener("click", () => {
+    zavri(); restToday();
+    toast("Dobře. Zavři to a dělej něco jiného — sérii ti to nezruší.");
+  });
+  const b15 = o.querySelector("#sos15");
+  if (b15) b15.addEventListener("click", () => {
+    zavri(); showView("camp"); $("focusLen").value = "15"; focusStart();
+  });
+}
+
+/* ==================================================================
+   DŮLEŽITÁ DATA — konzultace, odevzdávky
+   ================================================================== */
+function msts(){
+  if (!Array.isArray(state.milestones)) state.milestones = [];
+  return [...state.milestones].sort((a, b) => a.date.localeCompare(b.date));
+}
+function dniDo(datum){
+  const d = new Date(datum + "T23:59:59");
+  return isNaN(d) ? null : Math.ceil((d - Date.now()) / DAY);
+}
+function renderMsts(){
+  const list = msts();
+  $("mstList").innerHTML = list.length ? list.map(m => {
+    const dn = dniDo(m.date);
+    const pryc = dn !== null && dn < 0;
+    return `<div class="mst${pryc ? " gone" : (dn !== null && dn <= 7 ? " soon" : "")}">
+      <span class="d">${new Date(m.date + "T12:00:00").toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric" })}</span>
+      <span><span class="n">${esc(m.title)}</span>
+        <span class="dim" style="font-size:11.5px; display:block">${pryc ? "už proběhlo" : dn === 0 ? "dneska" : "za " + dn + " " + pl(dn, "den", "dny", "dní")}</span></span>
+      <button class="q-del" data-mdel="${m.id}" aria-label="Smazat ${esc(m.title)}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+      </button>
+    </div>`;
+  }).join("") : `<p class="dim" style="margin:0; font-size:13px">Zatím tu nic není. Přidej si konzultace a odevzdávky, ať tě nepřekvapí.</p>`;
+  $("mstList").querySelectorAll("[data-mdel]").forEach(b => b.addEventListener("click", () => {
+    state.milestones = state.milestones.filter(m => m.id !== b.dataset.mdel);
+    render(); pushState();
+  }));
+
+  const dalsi = list.find(m => (dniDo(m.date) ?? -1) >= 0);
+  const box = $("nextMst");
+  if (box) {
+    box.hidden = !dalsi;
+    if (dalsi) {
+      const dn = dniDo(dalsi.date);
+      box.innerHTML = `<span class="eyebrow">Nejbližší</span><div style="font-weight:700; margin-top:2px">${esc(dalsi.title)}</div>
+        <div class="muted" style="font-size:13px">${dn === 0 ? "Dneska." : "Za " + dn + " " + pl(dn, "den", "dny", "dní") + ", " + new Date(dalsi.date + "T12:00:00").toLocaleDateString("cs-CZ", { day: "numeric", month: "long" }) + "."}</div>`;
+    }
+  }
+}
+
+/* ==================================================================
    UVÍTÁNÍ A PRVNÍ KROKY — ať stačí poslat odkaz a nic vysvětlovat
    ================================================================== */
 const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
@@ -1974,13 +2263,13 @@ function renderStart(){
 
 const INTRO = [
   { art: () => capyArt(CAPYS[0]),   h: "Ahoj!",
-    p: "Tohle je tvoje diplomka jako hra. Kryštof ji pro tebe postavil. Za dvacet vteřin ti ukážu, jak funguje." },
+    p: "Tohle je tvoje diplomka jako hra. Postavil jsem ti ji, ať to není jeden velký nekonečný seznam. Za dvacet vteřin jsme hotoví." },
   { art: () => bossArt("list"),      h: "Každá etapa má svého bosse",
     p: "Práce je rozdělená na etapy a v každé sedí jedna příšera. Odškrtnutý úkol jí ubere životy — čím větší úkol, tím větší zásah. Když padne poslední úkol, padne i ona." },
   { art: () => capyArt(CAPYS[11]),   h: "Kapybary a truhly",
-    p: "Za úkoly rostou levely a za každý přibude jedna kapybara do sbírky. Za některé se odemknou truhly se vzkazy a fotkami od Kryštofa. Dřív se do nich nedostaneš, ani kdybys chtěla." },
+    p: "Za úkoly rostou levely a za každý ti přijde jedna kapybara. Za některé se odemknou truhly — schoval jsem do nich vzkazy a fotky. Dřív se k nim nedostaneš, ani kdybys chtěla." },
   { art: () => capyArt(CAPYS[7]),    h: "Kouká se jen na tenhle týden",
-    p: "V Rozvrhu uvidíš jen ten týden, co zrovna běží. Co nestihneš, samo spadne do dalšího — nic se nehromadí a nikdo ti nic nevyčítá." },
+    p: "V Rozvrhu uvidíš jen ten týden, co zrovna běží. Co nestihneš, samo spadne do dalšího. Nic se nehromadí a nikdo ti nic nevyčítá — já teda určitě ne." },
 ];
 function showIntro(){
   lsSet("capy.seenIntro", true);
@@ -2071,6 +2360,19 @@ $("addActForm").addEventListener("submit", e => {
   render(); pushState();
 });
 $("bulkAdd").addEventListener("click", bulkAdd);
+$("focusGo").addEventListener("click", focusStart);
+$("focusStop").addEventListener("click", () => focusEnd(false));
+$("focusLen").addEventListener("change", () => { lsSet("capy.focusLen", $("focusLen").value); focusTick(); });
+$("sosBtn").addEventListener("click", showSos);
+$("mstAdd").addEventListener("submit", e => {
+  e.preventDefault();
+  const d = $("mstDate").value, t = $("mstName").value.trim();
+  if (!d || !t) { toast("Vyplň datum i co to je."); return; }
+  if (!Array.isArray(state.milestones)) state.milestones = [];
+  state.milestones.push({ id: uid(), date: d, title: t.slice(0, 80) });
+  $("mstDate").value = ""; $("mstName").value = "";
+  render(); pushState();
+});
 $("goProfile").addEventListener("click", () => { showView("me"); $("fDeadline").focus(); });
 $("blockDays").addEventListener("change", () => {
   planCfg().blockDays = parseInt($("blockDays").value) || 7;
@@ -2148,6 +2450,19 @@ function fillProfileForm(){
   idb = await openIdb();
   photoUrls = await idbAll();
   await loadRewards();
+})();
+
+/* odpočet běží dál, i když appku mezitím zavřela */
+(function obnovOdpocet(){
+  const ul = lsGet("capy.focusLen", null);
+  if (ul) $("focusLen").value = String(ul);
+  const c = focusCfg().current;
+  if (c) {
+    if (Date.now() - c.startedAt >= c.minutes * 60000) focusEnd(true);
+    else focusTimer = setInterval(focusTick, 1000);
+  }
+  focusTick();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) focusTick(); });
 })();
 
 /* uvítání: připojení odkazem má přednost, ať se nepřekrývají modály */
