@@ -1371,6 +1371,8 @@ function planCfg(){
   return state.plan;
 }
 function midnight(d){ const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+/** Posun o kalendářní dny — přežije přechod na letní i zimní čas. */
+function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate() + n); x.setHours(0, 0, 0, 0); return x; }
 function planStart(){
   const p = planCfg();
   if (p.start) { const d = new Date(p.start + "T00:00:00"); if (!isNaN(d)) return d; }
@@ -1384,11 +1386,14 @@ function planBlocks(){
   let from = planStart();
   if (from > dl) from = midnight(new Date());
   const out = [];
-  while (from <= dl && out.length < 60) {
-    let to = new Date(from.getTime() + (days - 1) * DAY);
-    to.setHours(23, 59, 59, 999);
+  // Počítá se po kalendářních dnech, ne po milisekundách — jinak by týden
+  // s přechodem na zimní čas (má 169 hodin) vyšel o den kratší a jeden den
+  // by propadl mezi bloky.
+  while (from <= dl && out.length < 150) {
+    const next = addDays(from, days);          // začátek dalšího bloku
+    const to = new Date(next.getTime() - 1);   // = 23:59:59.999 předchozího dne
     out.push({ i: out.length, from: new Date(from), to: to > dl ? dl : to });
-    from = midnight(new Date(from.getTime() + days * DAY + 3 * 3600000)); // +3h kvůli letnímu času
+    from = next;
   }
   if (!out.length) out.push({ i: 0, from: midnight(new Date()), to: dl });
   return out;
@@ -1476,7 +1481,10 @@ function renderSchedule(){
   $("weekRange").textContent = `${dm(b.from)} – ${dm(b.to)} · ${idx + 1}/${blocks.length}`;
 
   let calm;
-  if (idx !== cur) {
+  const dl0 = daysLeft();
+  if (dl0 !== null && dl0 < 0) {
+    calm = "Termín odevzdání už je za tebou. Jestli ještě něco zbývá, posuň si datum v Profilu.";
+  } else if (idx !== cur) {
     calm = idx < cur
       ? `Tenhle blok už uplynul. Co v něm nezůstalo hotové, najdeš teď v aktuálním.`
       : `Tohle tě čeká později. Dívat se sem nemusíš — ale když máš náskok, klidně si něco přitáhni.`;
