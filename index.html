@@ -1,0 +1,1918 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kapybaří diplomka</title>
+<meta name="description" content="Gamifikovaný tracker diplomové práce — bossové, XP, kapybary a zamčené odměny.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Diplomka">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#152F2A" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#E2E6DE" media="(prefers-color-scheme: light)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+
+<style>
+/* ---------- tokens: dark first (řezací podložka), light = pauzák ---------- */
+:root{
+  --bg:#152F2A; --bg2:#1B3A33; --panel:#20443C; --panel2:#295147;
+  --line:#37665A; --hair:rgba(186,220,209,.16);
+  --ink:#EAF3EF; --ink2:#A4BEB5; --ink3:#6E8E84;
+  --blade:#FF8A3D; --bladeInk:#25150A;
+  --xp:#69D6A8; --hp:#E4695B; --gold:#F2C45A;
+  --capy:#C9945F; --capyDark:#9B6C3F; --capyLight:#DEB183;
+  --grid:rgba(190,220,210,.075);
+  --gridBold:rgba(190,220,210,.13);
+  --shadow:0 12px 34px rgba(0,0,0,.34);
+  --radius:14px;
+  color-scheme:dark;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]){
+    --bg:#E2E6DE; --bg2:#EBEEE6; --panel:#F7F8F3; --panel2:#E8ECE3;
+    --line:#C2CBBE; --hair:rgba(27,48,42,.14);
+    --ink:#182D27; --ink2:#4C645B; --ink3:#7A9086;
+    --blade:#CF5A15; --bladeInk:#FFF4EA;
+    --xp:#17855A; --hp:#C0402F; --gold:#A97B1E;
+    --capy:#A5703C; --capyDark:#7C5129; --capyLight:#C99A63;
+    --grid:rgba(24,58,48,.075);
+    --gridBold:rgba(24,58,48,.14);
+    --shadow:0 8px 24px rgba(40,60,52,.13);
+    color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#E2E6DE; --bg2:#EBEEE6; --panel:#F7F8F3; --panel2:#E8ECE3;
+  --line:#C2CBBE; --hair:rgba(27,48,42,.14);
+  --ink:#182D27; --ink2:#4C645B; --ink3:#7A9086;
+  --blade:#CF5A15; --bladeInk:#FFF4EA;
+  --xp:#17855A; --hp:#C0402F; --gold:#A97B1E;
+  --capy:#A5703C; --capyDark:#7C5129; --capyLight:#C99A63;
+  --grid:rgba(24,58,48,.075);
+  --gridBold:rgba(24,58,48,.14);
+  --shadow:0 8px 24px rgba(40,60,52,.13);
+  color-scheme:light;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+img{max-width:100%}
+[hidden]{display:none !important}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Archivo","Segoe UI",system-ui,sans-serif;
+  font-size:15px; line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  overflow-x:hidden;
+}
+body::before{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px),
+    linear-gradient(var(--gridBold) 1px,transparent 1px),
+    linear-gradient(90deg,var(--gridBold) 1px,transparent 1px);
+  background-size:10px 10px,10px 10px,50px 50px,50px 50px;
+}
+.shell{position:relative; z-index:1; max-width:980px; margin-inline:auto; padding-inline:16px; padding-block:0 96px}
+
+h1,h2,h3{margin:0; text-wrap:balance; font-variation-settings:"wdth" 108; letter-spacing:-.01em}
+h1{font-size:clamp(22px,5vw,30px); font-weight:800; line-height:1.05}
+h2{font-size:18px; font-weight:700}
+h3{font-size:15px; font-weight:700}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.eyebrow{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink3)}
+.num{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
+
+.titleblock{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:30;
+  margin-inline:-16px; padding-inline:16px;
+  background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.tb-grid{display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; padding-block:10px}
+.tb-name{min-width:0}
+.tb-name h1{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.tb-cells{display:flex; gap:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; flex-shrink:0}
+.tb-cell{padding:5px 10px; text-align:center; border-left:1px solid var(--line)}
+.tb-cell:first-child{border-left:0}
+.tb-cell b{display:block; font-family:"IBM Plex Mono",monospace; font-size:15px; font-weight:600; line-height:1.1; font-variant-numeric:tabular-nums}
+.tb-cell span{display:block; font-family:"IBM Plex Mono",monospace; font-size:8.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink3); margin-top:2px}
+.tb-cell.warn b{color:var(--blade)}
+
+.xpbar{height:4px; background:var(--panel2); border-radius:99px; overflow:hidden; margin-bottom:8px}
+.xpbar i{display:block; height:100%; background:var(--xp); border-radius:99px; transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.xpline{display:flex; justify-content:space-between; gap:8px; margin-bottom:4px}
+
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:14px}
+.stack{display:flex; flex-direction:column; gap:14px}
+.row{display:flex; gap:10px; align-items:center}
+.wrap{flex-wrap:wrap}
+.spacer{flex:1}
+.muted{color:var(--ink2)}
+.dim{color:var(--ink3)}
+.center{text-align:center}
+
+button{font:inherit; color:inherit; cursor:pointer}
+.btn{
+  border:1px solid var(--line); background:var(--panel2); color:var(--ink);
+  border-radius:10px; padding:9px 14px; font-weight:600; font-size:14px;
+  display:inline-flex; align-items:center; gap:7px; transition:transform .08s, background .15s;
+}
+.btn:hover{background:var(--panel)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--blade); color:var(--bladeInk); border-color:transparent}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent}
+.btn.small{padding:6px 10px; font-size:13px; border-radius:8px}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+:where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--blade); outline-offset:2px; border-radius:6px}
+
+input[type=text],input[type=date],input[type=number],textarea,select{
+  font:inherit; width:100%; background:var(--bg2); color:var(--ink);
+  border:1px solid var(--line); border-radius:9px; padding:9px 11px;
+}
+textarea{resize:vertical; min-height:88px; line-height:1.5}
+label.field{display:block}
+label.field>span{display:block; margin-bottom:5px}
+
+.chip{
+  font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.06em;
+  padding:3px 7px; border-radius:6px; border:1px solid var(--line); color:var(--ink2); white-space:nowrap;
+}
+.chip.xp{color:var(--xp); border-color:color-mix(in srgb,var(--xp) 40%,transparent)}
+.chip.gold{color:var(--gold); border-color:color-mix(in srgb,var(--gold) 40%,transparent)}
+
+.bosswrap{display:grid; grid-template-columns:1fr; gap:14px}
+@media(min-width:760px){ .bosswrap{grid-template-columns:320px 1fr; align-items:start} }
+
+.boss{position:relative; overflow:hidden; text-align:center; padding-block:16px}
+.boss::after{
+  content:""; position:absolute; inset:auto 0 0 0; height:70px; opacity:.5; pointer-events:none;
+  background:repeating-linear-gradient(45deg,var(--hair) 0 1px,transparent 1px 7px);
+  mask-image:linear-gradient(transparent,#000); -webkit-mask-image:linear-gradient(transparent,#000);
+}
+.boss-art{width:150px; height:130px; margin-inline:auto; display:block; position:relative}
+.boss-art.hit{animation:shake .38s}
+@keyframes shake{
+  0%,100%{transform:translateX(0) rotate(0)}
+  20%{transform:translateX(-7px) rotate(-3deg)}
+  45%{transform:translateX(6px) rotate(3deg)}
+  70%{transform:translateX(-3px) rotate(-1deg)}
+}
+.boss.dead .boss-art{filter:grayscale(1); opacity:.32; transform:rotate(10deg)}
+.boss-name{margin-top:6px; font-size:19px; font-weight:800; font-variation-settings:"wdth" 112}
+.boss-taunt{min-height:2.6em; margin-top:5px; font-size:13px; font-style:italic; color:var(--ink2); max-width:32ch; margin-inline:auto}
+.hpline{display:flex; justify-content:space-between; align-items:baseline; margin-top:12px; padding-inline:2px}
+.hpline b{font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--hp)}
+.hpbar{position:relative; height:12px; border:1px solid var(--line); border-radius:7px; overflow:hidden; background:var(--bg2); margin-top:4px}
+.hpbar i{
+  display:block; height:100%; background:var(--hp);
+  background-image:repeating-linear-gradient(45deg,rgba(0,0,0,.16) 0 3px,transparent 3px 8px);
+  transition:width .6s cubic-bezier(.2,.8,.2,1);
+}
+.boss.dead .hpline b{color:var(--ink3)}
+.dmg{position:absolute; left:50%; top:40%; transform:translateX(-50%); font-family:"IBM Plex Mono",monospace; font-weight:600; color:var(--blade); pointer-events:none; animation:float 1s forwards; font-size:20px}
+@keyframes float{ to{ transform:translate(-50%,-52px); opacity:0 } }
+
+.acts{display:flex; gap:8px; overflow-x:auto; padding-block:2px 8px; margin-inline:-16px; padding-inline:16px; scrollbar-width:thin}
+.act{
+  flex:0 0 auto; border:1px solid var(--line); background:var(--panel); border-radius:10px;
+  padding:7px 11px; min-width:132px; text-align:left; transition:border-color .15s;
+}
+.act[aria-pressed="true"]{border-color:var(--blade); background:var(--panel2)}
+.act .t{font-size:12.5px; font-weight:700; line-height:1.2}
+.act .mini{height:3px; background:var(--bg2); border-radius:99px; margin-top:6px; overflow:hidden}
+.act .mini i{display:block; height:100%; background:var(--xp)}
+.act.done .t{color:var(--ink3); text-decoration:line-through}
+
+.quests{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
+.quest{display:flex; gap:11px; align-items:flex-start; padding:11px 2px; border-top:1px dashed var(--hair)}
+.quest:first-child{border-top:0}
+.tick{
+  flex:0 0 auto; width:26px; height:26px; margin-top:1px; border-radius:8px;
+  border:1.5px solid var(--line); background:var(--bg2); display:grid; place-items:center; padding:0;
+  transition:background .15s,border-color .15s,transform .1s;
+}
+.tick svg{width:15px; height:15px; opacity:0; stroke-width:3; fill:none; stroke-linecap:round; stroke-linejoin:round}
+.tick:hover{border-color:var(--blade)}
+.quest.done .tick{background:var(--xp); border-color:transparent}
+.quest.done .tick svg{opacity:1; stroke:var(--bg)}
+.q-body{flex:1; min-width:0}
+.q-title{font-size:14.5px; line-height:1.35; word-break:break-word}
+.quest.done .q-title{color:var(--ink3); text-decoration:line-through}
+.q-meta{display:flex; gap:6px; align-items:center; margin-top:5px; flex-wrap:wrap}
+.q-del{border:0; background:transparent; color:var(--ink3); padding:4px; border-radius:6px; line-height:0}
+.q-del:hover{color:var(--hp)}
+
+.capys{display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:12px}
+.capy{border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); padding:12px; text-align:center; position:relative; overflow:hidden}
+.capy.locked{background:var(--bg2); border-style:dashed}
+.capy.locked svg{filter:grayscale(1) brightness(.55); opacity:.32}
+.capy svg{width:100%; height:auto; max-width:120px; display:block; margin-inline:auto}
+.capy .n{font-weight:700; font-size:14px; margin-top:6px}
+.capy .f{font-size:11.5px; color:var(--ink2); line-height:1.35; margin-top:3px; min-height:2.7em}
+.capy .r{position:absolute; top:8px; left:8px; font-family:"IBM Plex Mono",monospace; font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink3)}
+.capy .lv{position:absolute; top:8px; right:8px; font-family:"IBM Plex Mono",monospace; font-size:9.5px; color:var(--ink3)}
+.capy.r3{border-color:color-mix(in srgb,var(--xp) 45%,var(--line))}
+.capy.r4{border-color:color-mix(in srgb,var(--gold) 55%,var(--line))}
+
+.chest{border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); overflow:hidden}
+.chest.locked{background:var(--bg2); border-style:dashed}
+.chest-photo{width:100%; aspect-ratio:4/3; object-fit:cover; display:block; max-width:100%; background:var(--panel2)}
+.chest-in{padding:12px}
+.chest .t{font-weight:700; font-size:15px}
+.chest .m{font-size:13.5px; color:var(--ink2); margin-top:4px; line-height:1.45}
+.seal{aspect-ratio:4/3; display:grid; place-items:center; background:
+  repeating-linear-gradient(45deg,var(--hair) 0 1px,transparent 1px 9px), var(--panel2)}
+.seal .lockno{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.1em; color:var(--ink3); margin-top:6px; text-align:center}
+
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(88px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.stat{background:var(--panel); padding:10px 8px; text-align:center}
+.stat b{display:block; font-family:"IBM Plex Mono",monospace; font-size:19px; font-weight:600; font-variant-numeric:tabular-nums; line-height:1.1}
+.stat span{display:block; font-family:"IBM Plex Mono",monospace; font-size:8.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--ink3); margin-top:3px}
+
+.log{list-style:none; margin:0; padding:0; font-size:13px}
+.log li{display:flex; gap:9px; padding:6px 0; border-top:1px dashed var(--hair); color:var(--ink2)}
+.log li:first-child{border-top:0}
+.log time{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink3); flex:0 0 auto; padding-top:1px}
+
+.today{border-left:3px solid var(--blade); padding:10px 12px; background:var(--panel); border-radius:0 10px 10px 0}
+
+.tabs{
+  position:fixed; left:0; right:0; bottom:0; z-index:40;
+  display:flex; justify-content:center; gap:2px;
+  background:color-mix(in srgb,var(--bg) 92%,transparent); backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));
+}
+.tab{
+  flex:1 1 0; max-width:130px; border:0; background:transparent; color:var(--ink3);
+  display:flex; flex-direction:column; align-items:center; gap:2px; padding:5px 2px; border-radius:9px;
+  font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase;
+}
+.tab svg{width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round}
+.tab[aria-selected="true"]{color:var(--blade); background:var(--panel)}
+
+.overlay{position:fixed; inset:0; z-index:60; background:rgba(8,20,17,.62); backdrop-filter:blur(3px); display:grid; place-items:center; padding:18px}
+.modal{background:var(--panel); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); max-width:380px; width:100%; padding:20px; text-align:center; max-height:86vh; overflow-y:auto}
+.modal .capyart svg{width:150px; height:auto; margin-inline:auto; display:block}
+.burst{animation:pop .5s cubic-bezier(.2,1.5,.4,1)}
+@keyframes pop{ from{transform:scale(.6); opacity:0} to{transform:scale(1); opacity:1} }
+
+.toast{position:fixed; left:50%; bottom:calc(74px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%);
+  z-index:70; background:var(--panel2); border:1px solid var(--line); color:var(--ink);
+  padding:9px 15px; border-radius:99px; font-size:13.5px; box-shadow:var(--shadow); max-width:90vw; text-align:center}
+
+.divider{display:flex; align-items:center; gap:10px; color:var(--ink3)}
+.divider::before,.divider::after{content:""; height:1px; background:var(--line); flex:1}
+.divider span{font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.14em; text-transform:uppercase}
+
+.switch{display:flex; align-items:center; gap:10px; cursor:pointer}
+.switch input{width:auto; margin:0}
+
+.warnbox{border:1px solid var(--blade); background:color-mix(in srgb,var(--blade) 12%,var(--panel)); border-radius:10px; padding:11px 13px; font-size:13.5px}
+
+/* rozvrh */
+.week{border:1.5px solid var(--blade); background:var(--panel); border-radius:var(--radius); padding:14px}
+.week .hdr{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap}
+.week .rng{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink2); font-variant-numeric:tabular-nums}
+.calm{font-size:14px; line-height:1.45; margin-top:8px}
+.calm b{color:var(--blade)}
+.blocks{display:flex; flex-direction:column; gap:6px}
+.blk{
+  display:grid; grid-template-columns:38px 1fr auto; gap:10px; align-items:center;
+  padding:9px 11px; border:1px solid var(--line); border-radius:10px; background:var(--panel);
+  text-align:left; width:100%; font:inherit; color:inherit;
+}
+.blk.past{opacity:.5}
+.blk.now{border-color:var(--blade); background:var(--panel2)}
+.blk .bi{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink3)}
+.blk .bt{display:block; font-size:13px; font-weight:600; line-height:1.25}
+.blk .bd{display:block; font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--ink3); margin-top:2px}
+.blk .bmini{display:block; height:3px; background:var(--bg2); border-radius:99px; margin-top:6px; overflow:hidden}
+.blk .bmini i{display:block; height:100%; background:var(--xp)}
+.blk .bn{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink2); white-space:nowrap}
+.tl{display:flex; gap:3px; height:52px; align-items:flex-end; margin-top:4px}
+.tl i{flex:1; background:var(--panel2); border-radius:3px 3px 0 0; position:relative; min-height:5px; display:block}
+.tl i b{position:absolute; inset:auto 0 0 0; background:var(--xp); border-radius:3px 3px 0 0}
+.tl i.now{box-shadow:inset 0 0 0 1.5px var(--blade)}
+.tl i.past{opacity:.55}
+.mv{border:1px solid var(--line); background:transparent; color:var(--ink3); border-radius:7px; padding:2px 7px; font-size:11px; font-family:"IBM Plex Mono",monospace}
+.mv:hover{color:var(--blade); border-color:var(--blade)}
+.fold{border:1px solid var(--line); border-radius:var(--radius); background:var(--panel); overflow:hidden}
+.fold>summary{padding:13px 14px; cursor:pointer; font-weight:700; font-size:16px; list-style:none}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary::after{content:"+"; float:right; color:var(--ink3); font-family:"IBM Plex Mono",monospace}
+.fold[open]>summary::after{content:"–"}
+.fold>.foldin{padding:0 14px 14px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <header class="titleblock">
+    <div class="tb-grid">
+      <div class="tb-name">
+        <div class="eyebrow" id="tbEyebrow">Diplomová práce · FA ČVUT</div>
+        <h1 id="tbTitle">Diplomka</h1>
+      </div>
+      <div class="tb-cells">
+        <div class="tb-cell"><b id="tbLevel">1</b><span>level</span></div>
+        <div class="tb-cell"><b id="tbStreak">0</b><span>série</span></div>
+        <div class="tb-cell" id="tbDaysCell"><b id="tbDays">—</b><span>dní</span></div>
+      </div>
+    </div>
+    <div class="xpline">
+      <span class="eyebrow" id="xpLabel">XP</span>
+      <span class="eyebrow" id="xpNext"></span>
+    </div>
+    <div class="xpbar"><i id="xpFill" style="width:0%"></i></div>
+  </header>
+
+  <main>
+    <!-- ============ TAŽENÍ ============ -->
+    <section id="view-camp" class="stack" style="padding-top:14px">
+      <div class="acts" id="actList" role="tablist" aria-label="Etapy"></div>
+
+      <div class="bosswrap">
+        <div class="panel boss" id="bossPanel">
+          <div class="eyebrow" id="bossEyebrow">Boss etapy</div>
+          <div class="boss-art" id="bossArt"></div>
+          <div class="boss-name" id="bossName">—</div>
+          <div class="hpline"><span class="eyebrow">Životy</span><b id="hpText">—</b></div>
+          <div class="hpbar"><i id="hpFill" style="width:100%"></i></div>
+          <p class="boss-taunt" id="bossTaunt"></p>
+        </div>
+
+        <div class="stack">
+          <div class="today" id="todayBox"></div>
+          <div class="panel">
+            <div class="row" style="margin-bottom:6px">
+              <h2 id="actTitle">Úkoly</h2>
+              <div class="spacer"></div>
+              <span class="eyebrow" id="actCount"></span>
+            </div>
+            <ul class="quests" id="questList"></ul>
+            <form class="row" id="quickAdd" style="margin-top:12px; gap:8px">
+              <input type="text" id="quickAddInput" placeholder="Přidat úkol do této etapy…" aria-label="Nový úkol">
+              <select id="quickAddDiff" style="width:auto" aria-label="Náročnost">
+                <option value="1">S · 10</option>
+                <option value="2" selected>M · 25</option>
+                <option value="3">L · 50</option>
+              </select>
+              <button class="btn small" type="submit">Přidat</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats" id="statBlock"></div>
+
+      <div class="panel">
+        <div class="eyebrow" style="margin-bottom:8px">Deník tažení</div>
+        <ul class="log" id="logList"></ul>
+      </div>
+    </section>
+
+    <!-- ============ KAPYBÁRIUM ============ -->
+    <section id="view-capy" class="stack" hidden style="padding-top:14px">
+      <div class="panel">
+        <h2>Kapybárium</h2>
+        <p class="muted" style="margin:6px 0 0; font-size:13.5px">Každý level ti přivede jednu kapybaru. Bydlí tady, ať se máš na co dívat, když to nejde.</p>
+        <div class="row wrap" style="margin-top:10px">
+          <span class="chip" id="capyCount">0 / 16</span>
+          <span class="chip gold" id="capyNext"></span>
+        </div>
+      </div>
+      <div class="capys" id="capyGrid"></div>
+    </section>
+
+    <!-- ============ TRUHLY ============ -->
+    <section id="view-chest" class="stack" hidden style="padding-top:14px">
+      <div class="panel">
+        <h2>Truhly</h2>
+        <p class="muted" style="margin:6px 0 0; font-size:13.5px" id="chestIntro">Zamčené odměny od Kryštofa. Odemykají se levelem — nedá se to ošidit.</p>
+      </div>
+      <div class="capys" id="chestGrid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>
+      <div id="chestAdmin" hidden class="panel stack">
+        <div class="divider"><span>Režim Kryštof</span></div>
+        <p class="dim" style="margin:0; font-size:13px">Truhly upravené tady se uloží jen do tohohle zařízení. Trvale je nastavíš v souboru <b class="mono">odmeny.json</b>.</p>
+        <button class="btn" id="addChest">+ Nová truhla</button>
+      </div>
+    </section>
+
+    <!-- ============ PLÁN ============ -->
+    <section id="view-plan" class="stack" hidden style="padding-top:14px">
+      <div id="schedNone" class="panel stack" hidden>
+        <h2>Nejdřív termín</h2>
+        <p class="muted" style="margin:0; font-size:13.5px">Vyplň v Profilu datum odevzdání a já ti zbytek času rozdělím na bloky. Uvidíš vždycky jen ten jeden, co běží teď.</p>
+        <button class="btn primary" id="goProfile" style="align-self:flex-start">Nastavit termín</button>
+      </div>
+
+      <div id="schedBody" class="stack" hidden>
+        <div class="week">
+          <div class="hdr">
+            <h2 id="weekTitle">Tenhle blok</h2>
+            <span class="spacer"></span>
+            <span class="rng" id="weekRange"></span>
+          </div>
+          <div class="calm" id="weekCalm"></div>
+          <ul class="quests" id="weekList" style="margin-top:10px"></ul>
+        </div>
+
+        <div class="panel stack">
+          <div class="row">
+            <div class="eyebrow">Celý rozvrh</div>
+            <span class="spacer"></span>
+            <span class="eyebrow" id="schedMeta"></span>
+          </div>
+          <div class="tl" id="timeline" aria-hidden="true"></div>
+          <div class="blocks" id="blockList"></div>
+          <p class="dim" style="margin:0; font-size:12.5px" id="realityNote"></p>
+        </div>
+
+        <div class="panel stack">
+          <h2>Jak to rozdělit</h2>
+          <label class="field"><span class="eyebrow">Délka jednoho bloku</span>
+            <select id="blockDays">
+              <option value="5">5 dní</option>
+              <option value="7" selected>týden</option>
+              <option value="10">10 dní</option>
+              <option value="14">dva týdny</option>
+            </select>
+          </label>
+          <div class="row wrap">
+            <button class="btn primary" id="redistribute">Rozvrhnout znovu</button>
+            <span class="dim" style="font-size:12.5px">Rozdělí nehotové úkoly rovnoměrně po zbývajících blocích.</span>
+          </div>
+        </div>
+      </div>
+
+      <details class="fold">
+        <summary>Upravit seznam úkolů</summary>
+        <div class="foldin stack">
+        <div>
+          <h3>Hromadné přidání úkolů</h3>
+          <p class="muted" style="margin:6px 0 0; font-size:13.5px">Každý řádek je jeden úkol. Řádek začínající <b class="mono">#</b> založí novou etapu — za svislítko můžeš dát jméno bosse. Náročnost připoj jako <b class="mono">!1</b>, <b class="mono">!2</b> nebo <b class="mono">!3</b>.</p>
+        </div>
+        <textarea id="bulkInput" placeholder="# Rešerše | Bílý List
+Analýza širších vztahů !2
+Rešerše referencí — 5 staveb !3
+Fotodokumentace na místě !2
+
+# Koncept | Prokrastinaurus
+Hmotová studie — 3 varianty !3
+Provozní schéma !2"></textarea>
+        <div class="row wrap">
+          <button class="btn primary" id="bulkAdd">Přidat do plánu</button>
+          <span class="dim" style="font-size:12.5px">Přidává, nic nemaže.</span>
+        </div>
+
+        <div class="divider" style="margin-top:4px"><span>Etapy</span></div>
+        <div id="actEditor" class="stack"></div>
+        <form class="row" id="addActForm" style="gap:8px">
+          <input type="text" id="addActTitle" placeholder="Název etapy" aria-label="Název etapy">
+          <input type="text" id="addActBoss" placeholder="Jméno bosse" aria-label="Jméno bosse" style="max-width:150px">
+          <button class="btn small" type="submit">+</button>
+        </form>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============ PROFIL ============ -->
+    <section id="view-me" class="stack" hidden style="padding-top:14px">
+      <div id="backupWarn" hidden class="warnbox">
+        <b>Dlouho jsi nezálohovala.</b> Stáhni si zálohu níž — je to jeden soubor, ať o postup nepřijdeš.
+      </div>
+
+      <div class="panel stack">
+        <h2>Tvoje práce</h2>
+        <label class="field"><span class="eyebrow">Jméno</span><input type="text" id="fName" placeholder="Jak ti mám říkat"></label>
+        <label class="field"><span class="eyebrow">Téma diplomky</span><input type="text" id="fTopic" placeholder="Název práce"></label>
+        <label class="field"><span class="eyebrow">Ateliér / škola</span><input type="text" id="fAtelier" placeholder="Ateliér, FA ČVUT"></label>
+        <label class="field"><span class="eyebrow">Termín odevzdání</span><input type="date" id="fDeadline"></label>
+      </div>
+
+      <div class="panel stack">
+        <h2>Zobrazení</h2>
+        <div class="row wrap">
+          <button class="btn small" data-theme-set="auto">Podle systému</button>
+          <button class="btn small" data-theme-set="light">Pauzák</button>
+          <button class="btn small" data-theme-set="dark">Podložka</button>
+        </div>
+        <label class="switch"><input type="checkbox" id="krystofMode"> <span>Režim Kryštof — můžu upravovat truhly</span></label>
+      </div>
+
+      <div class="panel stack">
+        <h2>Synchronizace</h2>
+        <p class="dim" id="syncState" style="margin:0; font-size:13px">Vypnutá — postup je jen v tomhle zařízení.</p>
+
+        <div id="syncOff" class="stack">
+          <label class="field"><span class="eyebrow">Adresa serveru</span>
+            <input type="text" id="syncBase" placeholder="https://kapybari-diplomka.ucet.workers.dev" autocomplete="off" spellcheck="false"></label>
+          <label class="field"><span class="eyebrow">Veřejný klíč pro upozornění</span>
+            <input type="text" id="syncVapid" placeholder="B… (nepovinné)" autocomplete="off" spellcheck="false"></label>
+          <button class="btn primary" id="syncStart" style="align-self:flex-start">Zapnout synchronizaci</button>
+          <div class="divider"><span>nebo</span></div>
+          <label class="field"><span class="eyebrow">Párovací kód z druhého zařízení</span>
+            <input type="text" id="syncCode" placeholder="capy:…" autocomplete="off" spellcheck="false"></label>
+          <button class="btn" id="syncJoin" style="align-self:flex-start">Připojit se</button>
+        </div>
+
+        <div id="syncOn" class="stack" hidden>
+          <div class="warnbox">
+            <div class="eyebrow">Párovací kód</div>
+            <b class="mono" id="pairCode" style="font-size:11.5px; word-break:break-all; display:block; margin-top:4px"></b>
+          </div>
+          <p class="dim" style="margin:0; font-size:12.5px">Vlož ho na druhém zařízení do pole „Párovací kód". Kdo ho má, vidí tvoje úkoly — nedávej ho nikam veřejně.</p>
+          <div class="row wrap">
+            <button class="btn small" id="syncCopy">Zkopírovat kód</button>
+            <button class="btn small" id="syncNow">Synchronizovat teď</button>
+            <button class="btn small" id="pushOn">Zapnout upozornění</button>
+            <button class="btn small ghost" id="syncStop" style="color:var(--hp)">Odpojit</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel stack">
+        <h2>Záloha</h2>
+        <p class="dim" style="margin:0; font-size:13px" id="syncNote">Postup se ukládá v tomhle zařízení.</p>
+        <div class="row wrap">
+          <button class="btn" id="doExport">Stáhnout zálohu</button>
+          <label class="btn" style="cursor:pointer">Načíst zálohu<input type="file" id="doImport" accept="application/json,.json" hidden></label>
+        </div>
+        <p class="dim" style="margin:0; font-size:12.5px" id="lastBackup"></p>
+      </div>
+
+      <div class="panel stack">
+        <h2>Nebezpečná zóna</h2>
+        <button class="btn ghost small" id="resetProgress" style="color:var(--hp); align-self:flex-start">Vynulovat postup (úkoly zůstanou)</button>
+      </div>
+
+      <p class="dim center" style="font-size:12px; padding-bottom:10px">Postaveno pro jednu konkrétní diplomantku. 🦫</p>
+    </section>
+  </main>
+</div>
+
+<nav class="tabs" role="tablist" aria-label="Sekce">
+  <button class="tab" role="tab" data-view="camp" aria-selected="true">
+    <svg viewBox="0 0 24 24"><path d="M5 21V4l7 2 7-2v11l-7 2-7-2z"/><path d="M12 6v11"/></svg>Tažení</button>
+  <button class="tab" role="tab" data-view="capy" aria-selected="false">
+    <svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="5"/><circle cx="6.5" cy="6.5" r="1.6"/><circle cx="17.5" cy="6.5" r="1.6"/><path d="M9.5 13.5h.01M14.5 13.5h.01"/></svg>Kapybary</button>
+  <button class="tab" role="tab" data-view="chest" aria-selected="false">
+    <svg viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="11" rx="2"/><path d="M3 13h18M12 9v11M8 9a3 3 0 1 1 4-3 3 3 0 1 1 4 3"/></svg>Truhly</button>
+  <button class="tab" role="tab" data-view="plan" aria-selected="false">
+    <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M7.5 14.5h3M7.5 17.5h6"/></svg>Rozvrh</button>
+  <button class="tab" role="tab" data-view="me" aria-selected="false">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"/></svg>Profil</button>
+</nav>
+
+<script>
+/* ==================================================================
+   KAPYBAŘÍ DIPLOMKA — samostatná verze (bez Clauda)
+   Postup: localStorage · Fotky: IndexedDB · Odměny od Kryštofa: odmeny.json
+   ================================================================== */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Math.random().toString(36).slice(2, 9);
+const dayKey = (d) => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const todayKey = () => dayKey(new Date());
+const DIFF_XP = {1:10, 2:25, 3:50};
+const DIFF_LABEL = {1:"S", 2:"M", 3:"L"};
+const LEVELS = [0,25,60,105,160,225,300,385,480,585,700,825,960,1105,1260,1425];
+
+function levelFromXp(xp){ let l = 1; for (let i = 0; i < LEVELS.length; i++) if (xp >= LEVELS[i]) l = i + 1; return l; }
+function levelFloor(l){ return LEVELS[Math.min(l, LEVELS.length) - 1] ?? 0; }
+function levelCeil(l){ return l < LEVELS.length ? LEVELS[l] : null; }
+
+/* ---------- výchozí plán (FA ČVUT, editovatelný) ---------- */
+const BOSS_ART = ["list","prokrastinaurus","golem","krakatice","oponent"];
+function defaultState(){
+  const acts = [
+    { title:"Rešerše a analýzy", boss:"Bílý List", art:"list",
+      taunt:"Zatím jsi nenapsala ani větu. Vypadám dobře prázdný, ne?",
+      q:[["Sepsat zadání a cíle práce",2],["Rešerše referencí — 5 staveb",3],["Analýza širších vztahů",2],["Historický vývoj lokality",2],["Fotodokumentace na místě",2],["Dopravní a funkční analýza",2],["Problémová mapa / SWOT",1]] },
+    { title:"Koncept", boss:"Prokrastinaurus", art:"prokrastinaurus",
+      taunt:"Máš ještě čas. Dej si seriál. Zítra to půjde líp.",
+      q:[["Konceptuální skici",2],["Hmotová studie — 3 varianty",3],["Vybrat finální variantu",1],["Provozní schéma",2],["Konzultace s vedoucím",1]] },
+    { title:"Návrh a výkresy", boss:"Měřítkový Golem", art:"golem",
+      taunt:"Jaké měřítko? JAKÉ MĚŘÍTKO?",
+      q:[["Situace 1:500",2],["Půdorysy všech podlaží 1:200",3],["Řezy — 2×",3],["Pohledy — 4×",3],["Konstrukční schéma",2],["Detail 1:20",3],["Materiálové řešení",2]] },
+    { title:"Prezentace", boss:"Render Krakatice", art:"krakatice",
+      taunt:"Ještě jeden průchod. A ještě jeden. A ještě…",
+      q:[["3D model",3],["Vizualizace exteriéru — 2×",3],["Vizualizace interiéru",2],["Fyzický model",3],["Grafika panelů",2],["Portfolio / kniha",3],["Textová část a anotace",2]] },
+    { title:"Obhajoba", boss:"Pan Oponent", art:"oponent",
+      taunt:"Mám tu jen pár drobných připomínek. Jen třicet.",
+      q:[["Tisk a kompletace",2],["Odevzdání",1],["Příprava prezentace 10 min",2],["Nácvik obhajoby nahlas",2],["Odpovědi na oponenta",2]] },
+  ];
+  const A = [], Q = [];
+  acts.forEach(a => {
+    const id = uid();
+    A.push({ id, title:a.title, boss:a.boss, art:a.art, taunt:a.taunt });
+    a.q.forEach(([t, d]) => Q.push({ id:uid(), act:id, title:t, diff:d, done:false, doneAt:null, touched:0 }));
+  });
+  return {
+    v: 1,
+    profile: { name:"", topic:"Diplomová práce", atelier:"FA ČVUT", deadline:"" },
+    acts: A, quests: Q, xp: 0,
+    streak: { count:0, best:0, lastDay:null },
+    log: [], seenLevel: 1, activeAct: A[0].id, lastBackup: null,
+    plan: { start: null, blockDays: 7, assign: {} },
+  };
+}
+const FALLBACK_REWARDS = [
+  { id:"r1", lvl:2,  title:"Kafe na zavolání",          note:"Uvařím ti kafe a nezeptám se, jak jsi daleko.", file:null },
+  { id:"r2", lvl:4,  title:"Večer bez diplomky",        note:"Jeden večer, kdy se o práci nemluví. Ani slovo.", file:null },
+  { id:"r3", lvl:6,  title:"Masáž zad",                 note:"Po dni u počítače. Dvacet minut, bez řečí.", file:null },
+  { id:"r4", lvl:8,  title:"Výlet za kapybarami",       note:"Zoo, den volna, nic jiného na programu.", file:null },
+  { id:"r5", lvl:10, title:"Večeře, kterou vybereš ty", note:"Cokoliv. Fakt cokoliv.", file:null },
+  { id:"r6", lvl:12, title:"Obhájeno",                  note:"Tohle si otevřeš, až to bude celé hotové. Věřím ti.", file:null },
+];
+
+/* ---------- kapybary ---------- */
+const CAPYS = [
+  { lvl:1,  name:"Bára",      acc:"none",    fur:"#C99361", r:1, f:"Přišla se podívat, co to kreslíš. Nic neříká, jen tu je." },
+  { lvl:2,  name:"Bubble",    acc:"boba",    fur:"#C68C58", r:1, f:"Bubble tea a klid. Perličky si šetří na konec." },
+  { lvl:3,  name:"Avokádo",   acc:"avocado", fur:"#CE9A69", r:1, f:"Má na hlavě avokádo. Nijak to nevysvětluje." },
+  { lvl:4,  name:"Espresso",  acc:"coffee",  fur:"#BE8853", r:1, f:"Třetí dnes. Tvrdí, že poslední." },
+  { lvl:5,  name:"Nudlička",  acc:"noodles", fur:"#D2A273", r:2, f:"Oběd ve tři odpoledne, protože se zakreslila." },
+  { lvl:6,  name:"Sluchátka", acc:"phones",  fur:"#C68C58", r:2, f:"Šest hodin jedné playlisty. Zvládla to." },
+  { lvl:7,  name:"Helma",     acc:"hardhat", fur:"#C99361", r:2, f:"Byla na stavbě. Má k tomu spoustu poznámek." },
+  { lvl:8,  name:"Plavčice",  acc:"pool",    fur:"#CE9A69", r:2, f:"Kruh, kachnička, nula termínů. Ideál." },
+  { lvl:9,  name:"Pauzák",    acc:"roll",    fur:"#D6A87B", r:2, f:"Nosí roli výkresů, ze které nikdy nic nerozbalí." },
+  { lvl:10, name:"Modelářka", acc:"model",   fur:"#BE8853", r:3, f:"Tři prsty přelepené páskou. Model ale stojí." },
+  { lvl:11, name:"Kytička",   acc:"flower",  fur:"#D2A273", r:3, f:"Přinesla ti kytku. Za nic to není, jen tak." },
+  { lvl:12, name:"Korunka",   acc:"crown",   fur:"#C99361", r:3, f:"Odevzdáno. Korunu měla stejně celou dobu." },
+  { lvl:13, name:"Duháček",   acc:"rainbow", fur:"#CE9A69", r:3, f:"Po dešti. Přesně takhle vypadá konec dlouhého týdne." },
+  { lvl:14, name:"Oslava",    acc:"party",   fur:"#D6A87B", r:4, f:"Dort má. Důvod si najde." },
+  { lvl:15, name:"Ospalka",   acc:"sleep",   fur:"#C68C58", r:4, f:"Zasloužený spánek. Nebuď ji." },
+  { lvl:16, name:"Královna",  acc:"queen",   fur:"#DEB183", r:4, f:"Titul, duha a bazén. Víc netřeba." },
+];
+const RARITY = {1:"obyčejná", 2:"vzácná", 3:"epická", 4:"legendární"};
+
+function capyArt(c){
+  const OL = "#4A3426";
+  const fur = c.fur || "#C99361";
+  const ear = "#A4714A", snout = "#E6C098", belly = "#E0B183";
+  const a = c.acc || "none";
+  let back = "", mid = "", front = "";
+
+  if (a === "avocado") back = `
+    <ellipse cx="70" cy="50" rx="55" ry="48" fill="#A9D07F"/>
+    <ellipse cx="70" cy="53" rx="45" ry="39" fill="#D6EBB4" stroke="none"/>
+    <path d="M70 6c-1-8 6-11 11-9-1 8-5 10-11 9z" fill="#6FA84E"/>
+    <path d="M70 6c1-8-6-11-11-9 1 8 5 10 11 9z" fill="#83BC5C"/>`;
+  if (a === "rainbow" || a === "queen") back = `
+    <g fill="none" stroke-linecap="round">
+      <path d="M12 106a58 58 0 0 1 116 0" stroke="#EE8B7E" stroke-width="8"/>
+      <path d="M23 106a47 47 0 0 1 94 0" stroke="#F2C45A" stroke-width="8"/>
+      <path d="M34 106a36 36 0 0 1 72 0" stroke="#8FD9B6" stroke-width="8"/>
+      <path d="M45 106a25 25 0 0 1 50 0" stroke="#8FC9E8" stroke-width="8"/>
+    </g>`;
+  if (a === "pool" || a === "queen") mid = `
+    <ellipse cx="70" cy="94" rx="53" ry="23" fill="none" stroke="#7FC4E0" stroke-width="13"/>
+    <ellipse cx="70" cy="94" rx="53" ry="23" fill="none" stroke="${OL}" stroke-width="2.4"/>`;
+
+  if (a === "boba") front = `
+    <rect x="95" y="68" width="25" height="34" rx="5" fill="#EBD0AE"/>
+    <rect x="92" y="63" width="31" height="9" rx="4" fill="#F5EAD9"/>
+    <path d="M114 63V45" stroke="#EE8B7E" stroke-width="6" stroke-linecap="round"/>
+    <g stroke="none" fill="#5B3D22"><circle cx="102" cy="94" r="3.4"/><circle cx="111" cy="95" r="3.4"/><circle cx="107" cy="86" r="3.4"/></g>`;
+  if (a === "coffee") front = `
+    <path d="M97 66h24l-3 36H100z" fill="#F5EAD9"/>
+    <rect x="94" y="60" width="30" height="9" rx="4" fill="#C0553A"/>
+    <rect x="97" y="78" width="24" height="10" fill="#D8BE9A" stroke-width="2.4"/>
+    <g fill="none" stroke="#9FB5AC" stroke-width="3" stroke-linecap="round" opacity=".85">
+      <path d="M104 54c0-6 6-6 6-12M116 54c0-6 6-6 6-12"/></g>`;
+  if (a === "noodles") front = `
+    <path d="M42 97h56a28 28 0 0 1-56 0z" fill="#F7F1E6"/>
+    <ellipse cx="70" cy="97" rx="28" ry="8" fill="#EFD9B5"/>
+    <g fill="none" stroke="#E0A93E" stroke-width="4" stroke-linecap="round">
+      <path d="M52 94q7-11 15-4 8-9 15 2"/><path d="M70 90q3-12-3-19"/></g>
+    <circle cx="86" cy="93" r="4" fill="#8FBF6A" stroke-width="2.4"/>`;
+  if (a === "phones") front = `
+    <path d="M35 36a35 31 0 0 1 70 0" fill="none" stroke="#3E4F49" stroke-width="7" stroke-linecap="round"/>
+    <rect x="26" y="32" width="17" height="26" rx="8" fill="#3E4F49"/>
+    <rect x="97" y="32" width="17" height="26" rx="8" fill="#3E4F49"/>
+    <g stroke="#EE8B7E" stroke-width="3" fill="none"><path d="M124 22v16"/><circle cx="120" cy="39" r="4.5" fill="#EE8B7E"/></g>`;
+  if (a === "hardhat") front = `
+    <path d="M33 24c0-23 74-23 74 0z" fill="#F2C45A"/>
+    <rect x="25" y="21" width="90" height="9" rx="4.5" fill="#E0A82E"/>`;
+  if (a === "pool") front = `
+    <g><ellipse cx="114" cy="78" rx="11" ry="9" fill="#F2C45A"/><circle cx="121" cy="68" r="7" fill="#F2C45A"/>
+    <path d="M127 66l7 2-7 3z" fill="#E8843A"/><circle cx="123" cy="66" r="1.6" fill="${OL}" stroke="none"/></g>`;
+  if (a === "roll") front = `
+    <g transform="rotate(16 106 78)"><rect x="98" y="52" width="15" height="48" rx="7.5" fill="#F5EAD9"/>
+    <rect x="98" y="70" width="15" height="6" fill="#EE8B7E" stroke-width="2.4"/></g>`;
+  if (a === "model") front = `
+    <rect x="94" y="78" width="28" height="20" fill="#F5EAD9"/>
+    <path d="M91 78l17-13 17 13z" fill="#C0553A"/>
+    <rect x="104" y="86" width="9" height="12" fill="#8FC9E8" stroke-width="2.4"/>`;
+  if (a === "flower") front = `
+    <path d="M22 104V74" stroke="#6FA84E" stroke-width="4" stroke-linecap="round"/>
+    <path d="M14 88q-6-8 8-6" fill="#83BC5C" stroke-width="2.4"/>
+    <g fill="#F3A0B8"><circle cx="22" cy="62" r="8"/><circle cx="10" cy="70" r="8"/><circle cx="34" cy="70" r="8"/><circle cx="15" cy="82" r="8"/><circle cx="29" cy="82" r="8"/></g>
+    <circle cx="22" cy="72" r="6.5" fill="#F2C45A"/>`;
+  if (a === "crown") front = `
+    <path d="M40 22l7-17 11 11 12-16 12 16 11-11 7 17z" fill="#F2C45A"/>
+    <circle cx="70" cy="14" r="3.2" fill="#EE8B7E" stroke-width="2.4"/>`;
+  if (a === "queen") front = `
+    <path d="M40 22l7-17 11 11 12-16 12 16 11-11 7 17z" fill="#F2C45A"/>
+    <circle cx="70" cy="14" r="3.2" fill="#EE8B7E" stroke-width="2.4"/>
+    <g stroke="none" fill="#F2C45A"><path d="M124 40l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/><path d="M16 34l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></g>`;
+  if (a === "party") front = `
+    <path d="M70 4l16 26H54z" fill="#EE8B7E"/>
+    <path d="M60 22h20M56 14h12" stroke="#F5EAD9" stroke-width="3.4" stroke-linecap="round"/>
+    <circle cx="70" cy="4" r="5" fill="#F2C45A"/>
+    <rect x="94" y="82" width="30" height="20" rx="3" fill="#F3D9E2"/>
+    <rect x="94" y="82" width="30" height="7" rx="3" fill="#EE8B7E"/>
+    <path d="M109 82V70" stroke="#F2C45A" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="109" cy="67" r="3.5" fill="#F2C45A" stroke-width="2.4"/>`;
+  if (a === "sleep") front = `
+    <g stroke="none" fill="${OL}" font-family="'IBM Plex Mono',monospace" font-weight="600">
+      <text x="104" y="38" font-size="15">z</text><text x="115" y="25" font-size="19">z</text></g>`;
+
+  const closed = (a === "sleep");
+  const eyes = closed
+    ? `<path d="M43 43q8-10 16 0M81 43q8-10 16 0" fill="none" stroke="${OL}" stroke-width="3.6" stroke-linecap="round"/>`
+    : `<ellipse cx="51" cy="41" rx="5.2" ry="6.4" fill="${OL}" stroke="none"/>
+       <ellipse cx="89" cy="41" rx="5.2" ry="6.4" fill="${OL}" stroke="none"/>
+       <circle cx="53" cy="38" r="2" fill="#fff"/><circle cx="91" cy="38" r="2" fill="#fff"/>`;
+
+  return `<svg viewBox="0 0 140 124" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kapybara ${esc(c.name)}">
+    <g stroke="${OL}" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round">
+      ${back}
+      <ellipse cx="70" cy="88" rx="43" ry="28" fill="${fur}"/>
+      <ellipse cx="70" cy="96" rx="27" ry="18" fill="${belly}" stroke="none"/>
+      <ellipse cx="46" cy="110" rx="12" ry="7.5" fill="${fur}"/>
+      <ellipse cx="94" cy="110" rx="12" ry="7.5" fill="${fur}"/>
+      ${mid}
+      <ellipse cx="45" cy="17" rx="10" ry="8.5" fill="${ear}"/>
+      <ellipse cx="95" cy="17" rx="10" ry="8.5" fill="${ear}"/>
+      <rect x="34" y="18" width="72" height="56" rx="26" fill="${fur}"/>
+      <rect x="52" y="46" width="36" height="24" rx="12" fill="${snout}" stroke-width="2.8"/>
+      ${eyes}
+      <g stroke="none">
+        <ellipse cx="38" cy="53" rx="8" ry="5.2" fill="#F08A8A" opacity=".5"/>
+        <ellipse cx="102" cy="53" rx="8" ry="5.2" fill="#F08A8A" opacity=".5"/>
+        <ellipse cx="63" cy="54" rx="3.2" ry="2.4" fill="#6B4A2E"/>
+        <ellipse cx="77" cy="54" rx="3.2" ry="2.4" fill="#6B4A2E"/>
+      </g>
+      <path d="M70 58v4M70 62q-4 4-7 1M70 62q4 4 7 1" fill="none" stroke="#6B4A2E" stroke-width="2.6"/>
+      ${front}
+    </g>
+  </svg>`;
+}
+
+/* ---------- bossové ---------- */
+function bossArt(kind){
+  const S = (inner) => `<svg viewBox="0 0 140 124" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">${inner}</svg>`;
+  if (kind === "prokrastinaurus") return S(`
+    <ellipse cx="70" cy="116" rx="46" ry="6" fill="#000" opacity=".16"/>
+    <path d="M26 96c0-34 20-54 44-54s44 20 44 54z" fill="#7D6BA8"/>
+    <path d="M70 42c-6-16 4-26 4-26s2 12 10 16" fill="#6A5A92"/>
+    <ellipse cx="53" cy="70" rx="11" ry="9" fill="#EDE8F5"/>
+    <ellipse cx="87" cy="70" rx="11" ry="9" fill="#EDE8F5"/>
+    <circle cx="55" cy="72" r="4.5" fill="#241C38"/><circle cx="85" cy="72" r="4.5" fill="#241C38"/>
+    <path d="M42 66c5-4 13-4 18 0M80 66c5-4 13-4 18 0" stroke="#4E416F" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M58 88c6 5 18 5 24 0" stroke="#4E416F" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <rect x="96" y="78" width="20" height="30" rx="4" fill="#2A2438" transform="rotate(12 106 93)"/>
+    <rect x="99" y="82" width="14" height="22" rx="2" fill="#7FD1AE" opacity=".8" transform="rotate(12 106 93)"/>`);
+  if (kind === "golem") return S(`
+    <ellipse cx="70" cy="116" rx="44" ry="6" fill="#000" opacity=".16"/>
+    <rect x="34" y="72" width="72" height="38" rx="5" fill="#8D9A93"/>
+    <rect x="42" y="40" width="56" height="34" rx="5" fill="#A2AFA7"/>
+    <rect x="12" y="76" width="22" height="9" rx="3" fill="#6F7C76"/>
+    <rect x="106" y="76" width="22" height="9" rx="3" fill="#6F7C76"/>
+    <rect x="46" y="86" width="48" height="12" rx="2" fill="#E8DFCF"/>
+    <path d="M46 86v12M58 86v12M70 86v12M82 86v12M94 86v12" stroke="#8D9A93" stroke-width="2.5"/>
+    <rect x="52" y="50" width="14" height="11" rx="2" fill="#243029"/>
+    <rect x="74" y="50" width="14" height="11" rx="2" fill="#243029"/>
+    <circle cx="59" cy="56" r="3" fill="#FF8A3D"/><circle cx="81" cy="56" r="3" fill="#FF8A3D"/>
+    <path d="M42 34h56" stroke="#6F7C76" stroke-width="4" stroke-linecap="round"/>`);
+  if (kind === "krakatice") return S(`
+    <ellipse cx="70" cy="116" rx="42" ry="6" fill="#000" opacity=".16"/>
+    <path d="M36 82c0-28 15-46 34-46s34 18 34 46z" fill="#2F7E8C"/>
+    <path d="M40 80c-6 14-16 20-22 30 8 2 16-4 22-14M58 84c-2 16-8 24-8 34 8-2 12-12 14-24M82 84c2 16 8 24 8 34-8-2-12-12-14-24M100 80c6 14 16 20 22 30-8 2-16-4-22-14" fill="#2F7E8C"/>
+    <ellipse cx="57" cy="64" rx="9" ry="11" fill="#E9F3F2"/>
+    <ellipse cx="83" cy="64" rx="9" ry="11" fill="#E9F3F2"/>
+    <ellipse cx="57" cy="66" rx="4" ry="5" fill="#12312F"/>
+    <ellipse cx="83" cy="66" rx="4" ry="5" fill="#12312F"/>
+    <path d="M62 88c5 4 11 4 16 0" stroke="#164A52" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M110 30l16 22-8 1 5 10-5 2-5-10-6 5z" fill="#E8DFCF" stroke="#164A52" stroke-width="1.5" stroke-linejoin="round"/>`);
+  if (kind === "oponent") return S(`
+    <ellipse cx="70" cy="116" rx="42" ry="6" fill="#000" opacity=".16"/>
+    <path d="M28 112c0-24 19-34 42-34s42 10 42 34z" fill="#2E3B49"/>
+    <path d="M70 78l-10 34h20z" fill="#E8E4DC"/>
+    <path d="M62 80l8 10 8-10" stroke="#B23A2E" stroke-width="4" fill="none"/>
+    <ellipse cx="70" cy="52" rx="27" ry="30" fill="#D9B08C"/>
+    <path d="M43 44c4-22 50-22 54 0 2 12-4 8-27 8s-29 4-27-8z" fill="#525E6B"/>
+    <rect x="46" y="48" width="20" height="14" rx="3" fill="none" stroke="#243029" stroke-width="2.5"/>
+    <rect x="74" y="48" width="20" height="14" rx="3" fill="none" stroke="#243029" stroke-width="2.5"/>
+    <path d="M66 55h8M43 52l3-2M97 52l-3-2" stroke="#243029" stroke-width="2.5"/>
+    <circle cx="56" cy="55" r="3" fill="#243029"/><circle cx="84" cy="55" r="3" fill="#243029"/>
+    <path d="M58 72c6-3 18-3 24 0" stroke="#A8776A" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <g transform="rotate(35 108 80)"><rect x="100" y="60" width="7" height="38" rx="2" fill="#B23A2E"/><path d="M100 98l3.5 8 3.5-8z" fill="#243029"/></g>`);
+  return S(`
+    <ellipse cx="70" cy="116" rx="40" ry="6" fill="#000" opacity=".16"/>
+    <path d="M36 16h54l16 16v78l-11-8-11 8-12-8-12 8-12-8-12 8z" fill="#F3F1EA" stroke="#C6C2B4" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M90 16v16h16z" fill="#D9D5C6"/>
+    <ellipse cx="58" cy="58" rx="8" ry="10" fill="#2B3A34"/>
+    <ellipse cx="86" cy="58" rx="8" ry="10" fill="#2B3A34"/>
+    <path d="M54 84h36" stroke="#2B3A34" stroke-width="4" stroke-linecap="round"/>
+    <path d="M46 36h48M46 44h30" stroke="#D9D5C6" stroke-width="3" stroke-linecap="round"/>`);
+}
+
+const NUDGES = [
+  "Nastav si 25 minut a otevři jen jeden soubor. Nic víc.",
+  "Nejmenší úkol ze seznamu. Ten trvá deset minut a boss z toho stejně dostane zásah.",
+  "Když to nejde kreslit, čti. Rešerše je taky práce.",
+  "Vyfoť si dnešní stav obrazovky. Za měsíc to bude vypadat neuvěřitelně.",
+  "Napiš vedoucímu jednu otázku. I to je splněný krok.",
+  "Udělej to ošklivě. Opravit se to dá zítra, začít znova ne.",
+  "Dvacet minut ruční skici bez počítače. Vrátí ti to hlavu.",
+  "Vyber jeden výkres a dodělej u něj jen popisky.",
+];
+
+/* ==================================================================
+   ULOŽIŠTĚ
+   ================================================================== */
+let state = defaultState();
+let rewards = { items: FALLBACK_REWARDS.map(r => ({ ...r })) };
+let localOverrides = {};
+let photoUrls = {};
+
+function lsGet(k, fb){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch(e){ return fb; } }
+function lsSet(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){ toast("Úložiště je plné — stáhni si zálohu."); } }
+
+let syncTimer = null;
+function pushState(){
+  state.stamp = Date.now();
+  lsSet("capy.state", state);
+  if (syncOn()) { clearTimeout(syncTimer); syncTimer = setTimeout(syncPush, 800); }
+}
+function pushOverrides(){ lsSet("capy.overrides", localOverrides); }
+
+/* --- IndexedDB na fotky (localStorage by na ně nestačil) --- */
+let idb = null;
+function openIdb(){
+  return new Promise(res => {
+    try {
+      const req = indexedDB.open("kapybari-diplomka", 1);
+      req.onupgradeneeded = () => { req.result.createObjectStore("photos"); };
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => res(null);
+    } catch(e){ res(null); }
+  });
+}
+function idbPut(key, blob){
+  return new Promise(res => {
+    if (!idb) return res(false);
+    const tx = idb.transaction("photos", "readwrite");
+    tx.objectStore("photos").put(blob, key);
+    tx.oncomplete = () => res(true);
+    tx.onerror = () => res(false);
+  });
+}
+function idbAll(){
+  return new Promise(res => {
+    if (!idb) return res({});
+    const out = {};
+    const tx = idb.transaction("photos", "readonly");
+    const st = tx.objectStore("photos");
+    const kq = st.getAllKeys(), vq = st.getAll();
+    tx.oncomplete = () => {
+      (kq.result || []).forEach((k, i) => {
+        const b = vq.result[i];
+        if (b) { try { out[k] = URL.createObjectURL(b); } catch(e){} }
+      });
+      res(out);
+    };
+    tx.onerror = () => res({});
+  });
+}
+
+/* --- odměny od Kryštofa: odmeny.json vedle appky --- */
+async function loadRewards(){
+  let remote = null;
+  try {
+    const r = await fetch("odmeny.json", { cache: "no-store" });
+    if (r.ok) {
+      const j = await r.json();
+      if (Array.isArray(j?.items)) remote = j.items;
+    }
+  } catch(e){ /* otevřeno z disku nebo offline — jedeme na výchozích */ }
+  const base = remote || FALLBACK_REWARDS;
+  const merged = base.map(r => ({ ...r, ...(localOverrides[r.id] || {}) }));
+  Object.keys(localOverrides).forEach(id => {
+    if (!base.find(r => r.id === id) && !localOverrides[id]._deleted) merged.push({ ...localOverrides[id], id });
+  });
+  rewards = { items: merged.filter(r => !r._deleted) };
+  renderChests();
+}
+
+/* ==================================================================
+   HERNÍ LOGIKA
+   ================================================================== */
+const qxp = (q) => DIFF_XP[q.diff] || 25;
+const actQuests = (id) => state.quests.filter(q => q.act === id);
+const actMax = (id) => actQuests(id).reduce((s, q) => s + qxp(q), 0);
+const actDone = (id) => actQuests(id).filter(q => q.done).reduce((s, q) => s + qxp(q), 0);
+const activeAct = () => state.acts.find(a => a.id === state.activeAct) || state.acts[0];
+
+function totalXp(){ return state.quests.filter(q => q.done).reduce((s, q) => s + qxp(q), 0); }
+function daysLeft(){
+  if (!state.profile.deadline) return null;
+  const d = new Date(state.profile.deadline + "T23:59:59");
+  if (isNaN(d)) return null;
+  return Math.ceil((d - new Date()) / 86400000);
+}
+function addLog(text, xp){
+  state.log.unshift({ t: Date.now(), text, xp: xp || 0 });
+  state.log = state.log.slice(0, 40);
+}
+function bumpStreak(){
+  const t = todayKey(), s = state.streak;
+  if (s.lastDay === t) return;
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  s.count = (s.lastDay === dayKey(y)) ? s.count + 1 : 1;
+  s.lastDay = t;
+  s.best = Math.max(s.best || 0, s.count);
+}
+
+function toggleQuest(id){
+  const q = state.quests.find(x => x.id === id);
+  if (!q) return;
+  const beforeLvl = levelFromXp(totalXp());
+  q.done = !q.done;
+  q.doneAt = q.done ? Date.now() : null;
+  q.touched = Date.now();
+  if (q.done) { bumpStreak(); addLog(q.title, qxp(q)); hitBoss(qxp(q)); }
+  else { addLog("Vráceno: " + q.title, -qxp(q)); }
+  state.xp = totalXp();
+  const afterLvl = levelFromXp(state.xp);
+  render(); pushState();
+
+  if (q.done && afterLvl > beforeLvl) setTimeout(() => celebrate(afterLvl), 620);
+  else if (q.done) {
+    const a = state.acts.find(x => x.id === q.act);
+    if (a && actMax(a.id) > 0 && actDone(a.id) >= actMax(a.id)) setTimeout(() => bossDown(a), 620);
+  }
+}
+
+function hitBoss(dmg){
+  const art = $("bossArt");
+  art.classList.remove("hit"); void art.offsetWidth; art.classList.add("hit");
+  const d = document.createElement("div");
+  d.className = "dmg"; d.textContent = "−" + dmg;
+  $("bossPanel").appendChild(d);
+  setTimeout(() => d.remove(), 1000);
+  if (navigator.vibrate) { try { navigator.vibrate(18); } catch(e){} }
+}
+
+/* ==================================================================
+   MODÁLY A HLÁŠKY
+   ================================================================== */
+function modal(html){
+  const o = document.createElement("div");
+  o.className = "overlay"; o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true");
+  o.innerHTML = `<div class="modal burst">${html}</div>`;
+  const close = () => o.remove();
+  o.addEventListener("click", e => { if (e.target === o) close(); });
+  o.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", close));
+  document.body.appendChild(o);
+  const btn = o.querySelector("button"); if (btn) btn.focus();
+  return o;
+}
+function celebrate(lvl){
+  state.seenLevel = lvl;
+  const c = CAPYS.find(x => x.lvl === lvl);
+  const chests = rewards.items.filter(r => r.lvl === lvl);
+  let html = `<div class="eyebrow">Level ${lvl}</div>`;
+  if (c) {
+    html += `<div class="capyart">${capyArt(c)}</div>
+      <h2 style="margin-top:8px">Přidala se ${esc(c.name)}</h2>
+      <p class="muted" style="font-size:13.5px; margin:6px 0 0">${esc(c.f)}</p>`;
+  } else {
+    html += `<h2 style="margin-top:10px">Level ${lvl}</h2><p class="muted" style="font-size:13.5px">Jde ti to.</p>`;
+  }
+  if (chests.length) html += `<p style="margin:12px 0 0; color:var(--gold); font-weight:700; font-size:14px">Odemkla se truhla: ${chests.map(c2 => esc(c2.title)).join(", ")}</p>`;
+  html += `<button class="btn primary" data-close style="margin-top:16px; width:100%">Dobře</button>`;
+  modal(html);
+  pushState();
+}
+function bossDown(a){
+  modal(`<div class="eyebrow">Etapa dokončena</div>
+    <div style="width:150px;height:130px;margin:8px auto 0;filter:grayscale(1);opacity:.4;transform:rotate(12deg)">${bossArt(a.art)}</div>
+    <h2 style="margin-top:10px">${esc(a.boss)} padl</h2>
+    <p class="muted" style="font-size:13.5px; margin:6px 0 0">Celá etapa „${esc(a.title)}“ je hotová. Tohle už ti nikdo nevezme.</p>
+    <button class="btn primary" data-close style="margin-top:16px; width:100%">Jdeme dál</button>`);
+}
+let toastT;
+function toast(msg){
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = msg; t.setAttribute("role", "status");
+  document.body.appendChild(t);
+  clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 2600);
+}
+
+/* ==================================================================
+   VYKRESLENÍ
+   ================================================================== */
+function render(){
+  if (!state.acts.length) state.acts = [{ id: uid(), title: "Moje etapa", boss: "Bílý List", art: "list", taunt: "Prázdno." }];
+  if (!state.acts.find(a => a.id === state.activeAct)) state.activeAct = state.acts[0].id;
+  state.xp = totalXp();
+  renderHeader(); renderActs(); renderBoss(); renderQuests(); renderStats(); renderLog(); renderToday();
+  renderCapys(); renderChests(); renderActEditor(); renderBackup(); renderSchedule();
+}
+
+function renderHeader(){
+  const lvl = levelFromXp(state.xp), floor = levelFloor(lvl), ceil = levelCeil(lvl);
+  $("tbTitle").textContent = state.profile.topic || "Diplomová práce";
+  $("tbEyebrow").textContent = [state.profile.name, state.profile.atelier].filter(Boolean).join(" · ") || "Diplomová práce";
+  $("tbLevel").textContent = lvl;
+  $("tbStreak").textContent = state.streak.count || 0;
+  const dl = daysLeft();
+  $("tbDays").textContent = dl === null ? "—" : (dl < 0 ? "0" : dl);
+  $("tbDaysCell").classList.toggle("warn", dl !== null && dl <= 30);
+  $("xpLabel").textContent = state.xp + " XP";
+  if (ceil === null) { $("xpNext").textContent = "maximum"; $("xpFill").style.width = "100%"; }
+  else {
+    $("xpNext").textContent = (ceil - state.xp) + " XP do levelu " + (lvl + 1);
+    $("xpFill").style.width = Math.max(2, Math.min(100, ((state.xp - floor) / (ceil - floor)) * 100)) + "%";
+  }
+}
+
+function renderActs(){
+  const el = $("actList");
+  el.innerHTML = state.acts.map(a => {
+    const max = actMax(a.id), done = actDone(a.id);
+    const pct = max ? Math.round(done / max * 100) : 0;
+    const dead = max > 0 && done >= max;
+    return `<button class="act${dead ? " done" : ""}" role="tab" data-act="${a.id}" aria-pressed="${a.id === state.activeAct}">
+      <div class="eyebrow">${dead ? "poražen" : "boss"}</div>
+      <div class="t">${esc(a.title)}</div>
+      <div class="mini"><i style="width:${pct}%"></i></div>
+    </button>`;
+  }).join("");
+  el.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => {
+    state.activeAct = b.dataset.act; render(); pushState();
+  }));
+}
+
+function renderBoss(){
+  const a = activeAct(); if (!a) return;
+  const max = actMax(a.id), done = actDone(a.id), hp = Math.max(0, max - done);
+  const dead = max > 0 && hp === 0;
+  $("bossArt").innerHTML = bossArt(a.art);
+  $("bossName").textContent = a.boss || "Boss";
+  $("bossPanel").classList.toggle("dead", dead);
+  $("bossEyebrow").textContent = dead ? "Poražen" : "Boss etapy";
+  $("hpFill").style.width = (max ? (hp / max * 100) : 0) + "%";
+  $("hpText").textContent = hp + " / " + max + " HP";
+  $("bossTaunt").textContent = dead ? "…" : (a.taunt || "");
+}
+
+function renderQuests(){
+  const a = activeAct(); if (!a) return;
+  const qs = actQuests(a.id);
+  $("actTitle").textContent = a.title;
+  $("actCount").textContent = qs.filter(q => q.done).length + " / " + qs.length;
+  $("questList").innerHTML = qs.length ? qs.map(q => `
+    <li class="quest${q.done ? " done" : ""}">
+      <button class="tick" data-q="${q.id}" aria-pressed="${q.done}" aria-label="${q.done ? "Vrátit" : "Splněno"}: ${esc(q.title)}">
+        <svg viewBox="0 0 24 24" stroke="currentColor"><path d="M4 12l6 6L20 6"/></svg>
+      </button>
+      <div class="q-body">
+        <div class="q-title">${esc(q.title)}</div>
+        <div class="q-meta">
+          <span class="chip">${DIFF_LABEL[q.diff] || "M"}</span>
+          <span class="chip xp">${qxp(q)} XP</span>
+        </div>
+      </div>
+      <button class="q-del" data-del="${q.id}" aria-label="Smazat úkol ${esc(q.title)}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+      </button>
+    </li>`).join("") : `<li class="dim" style="padding:14px 2px; font-size:13.5px">Zatím tu nic není. Přidej první úkol dole, nebo si nasyp celý seznam v sekci Plán.</li>`;
+
+  $("questList").querySelectorAll("[data-q]").forEach(b => b.addEventListener("click", () => toggleQuest(b.dataset.q)));
+  $("questList").querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => {
+    state.quests = state.quests.filter(q => q.id !== b.dataset.del);
+    render(); pushState();
+  }));
+}
+
+function renderStats(){
+  const done = state.quests.filter(q => q.done).length, all = state.quests.length;
+  const dl = daysLeft(), left = all - done;
+  let tempo = "—";
+  if (dl !== null && dl > 0 && left > 0) {
+    const per = left / dl;
+    tempo = per >= 1 ? (Math.ceil(per) + "/den") : ("1 / " + Math.floor(dl / left) + " dní");
+  } else if (left === 0 && all > 0) tempo = "hotovo";
+  $("statBlock").innerHTML = `
+    <div class="stat"><b>${done}/${all}</b><span>úkolů</span></div>
+    <div class="stat"><b>${state.acts.filter(a => actMax(a.id) > 0 && actDone(a.id) >= actMax(a.id)).length}/${state.acts.length}</b><span>bossů</span></div>
+    <div class="stat"><b>${state.streak.best || 0}</b><span>nejdelší série</span></div>
+    <div class="stat"><b>${tempo}</b><span>potřebné tempo</span></div>`;
+}
+
+function renderLog(){
+  $("logList").innerHTML = state.log.length ? state.log.slice(0, 8).map(l => {
+    const d = new Date(l.t);
+    return `<li><time>${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}</time><span>${esc(l.text)}</span><span class="spacer"></span><span class="num" style="color:${l.xp >= 0 ? "var(--xp)" : "var(--ink3)"}">${l.xp >= 0 ? "+" : ""}${l.xp}</span></li>`;
+  }).join("") : `<li class="dim">Zatím prázdno. První odškrtnutý úkol se objeví tady.</li>`;
+}
+
+function renderToday(){
+  const now = new Date();
+  const doneToday = state.quests.filter(q => q.done && q.doneAt && dayKey(new Date(q.doneAt)) === todayKey()).length;
+  const idx = (now.getFullYear() * 372 + now.getMonth() * 31 + now.getDate()) % NUDGES.length;
+  const s = state.streak.count;
+  let weekLine = "";
+  const blocks = planBlocks();
+  if (blocks.length) {
+    const cur = curBlockIdx(blocks);
+    const st = blockStats(blocks[cur], cur, blocks);
+    if (st.qs.length) {
+      const left = st.qs.length - st.done.length;
+      weekLine = left
+        ? `<div class="muted" style="font-size:13px; margin-top:4px">Tenhle blok: ${st.done.length} z ${st.qs.length} hotovo, zbývá ${left}.</div>`
+        : `<div class="muted" style="font-size:13px; margin-top:4px">Tenhle blok máš celý splněný.</div>`;
+    }
+  }
+  $("todayBox").innerHTML = (doneToday > 0
+    ? `<div class="eyebrow">Dnes</div><div style="font-weight:700; margin-top:2px">${doneToday}× hotovo. Série ${s} ${s === 1 ? "den" : s < 5 ? "dny" : "dní"}.</div><div class="muted" style="font-size:13px; margin-top:3px">Zbytek dne je tvůj.</div>`
+    : `<div class="eyebrow">Dnešní postrčení</div><div style="font-weight:600; margin-top:2px; font-size:14px">${esc(NUDGES[idx])}</div>`) + weekLine;
+}
+
+function renderCapys(){
+  const lvl = levelFromXp(state.xp);
+  const have = CAPYS.filter(c => c.lvl <= lvl).length;
+  $("capyCount").textContent = have + " / " + CAPYS.length;
+  const next = CAPYS.find(c => c.lvl > lvl);
+  $("capyNext").textContent = next ? "další na levelu " + next.lvl : "všechny doma";
+  $("capyGrid").innerHTML = CAPYS.map(c => {
+    const un = c.lvl <= lvl;
+    return `<div class="capy r${c.r}${un ? "" : " locked"}">
+      <span class="r">${un ? RARITY[c.r] : "?"}</span><span class="lv">lv ${c.lvl}</span>
+      ${capyArt(c)}
+      <div class="n">${un ? esc(c.name) : "???"}</div>
+      <div class="f">${un ? esc(c.f) : "Odemkne se na levelu " + c.lvl + "."}</div>
+    </div>`;
+  }).join("");
+}
+
+function photoSrc(r){
+  if (photoUrls[r.id]) return photoUrls[r.id];
+  if (r.file) return "fotky/" + r.file;
+  return null;
+}
+function renderChests(){
+  const lvl = levelFromXp(state.xp);
+  const admin = $("krystofMode").checked;
+  $("chestAdmin").hidden = !admin;
+  $("chestIntro").textContent = admin
+    ? "Režim Kryštof je zapnutý — vidíš i zamčené truhly a můžeš je upravovat."
+    : "Zamčené odměny od Kryštofa. Odemykají se levelem — nedá se to ošidit.";
+  const items = [...rewards.items].sort((a, b) => a.lvl - b.lvl);
+  const ceil = levelCeil(lvl);
+  $("chestGrid").innerHTML = items.map(r => {
+    const open = r.lvl <= lvl;
+    const src = photoSrc(r);
+    if (!open && !admin) {
+      return `<div class="chest locked">
+        <div class="seal">
+          <div style="text-align:center">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" stroke-width="1.5"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            <div class="lockno">LEVEL ${r.lvl}</div>
+          </div>
+        </div>
+        <div class="chest-in"><div class="t dim">Zamčeno</div><div class="m">${ceil ? "Do dalšího levelu ti zbývá " + Math.max(0, ceil - state.xp) + " XP." : "Jsi na maximu."}</div></div>
+      </div>`;
+    }
+    return `<div class="chest${open ? "" : " locked"}">
+      ${src ? `<img class="chest-photo" src="${esc(src)}" alt="${esc(r.title)}" loading="lazy">`
+            : `<div class="seal"><div class="lockno">${admin ? "zatím bez fotky" : "🦫"}</div></div>`}
+      <div class="chest-in">
+        <div class="row"><div class="t">${esc(r.title)}</div><span class="spacer"></span><span class="chip gold">lv ${r.lvl}</span></div>
+        <div class="m">${esc(r.note)}</div>
+        ${admin ? `<div class="row wrap" style="margin-top:10px">
+          <button class="btn small" data-editchest="${r.id}">Upravit</button>
+          <label class="btn small" style="cursor:pointer">Foto<input type="file" accept="image/*" data-photo="${r.id}" hidden></label>
+          <button class="btn small ghost" data-delchest="${r.id}" style="color:var(--hp)">Smazat</button>
+        </div>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+
+  $("chestGrid").querySelectorAll("[data-editchest]").forEach(b => b.addEventListener("click", () => editChest(b.dataset.editchest)));
+  $("chestGrid").querySelectorAll("[data-delchest]").forEach(b => b.addEventListener("click", () => {
+    const id = b.dataset.delchest;
+    localOverrides[id] = { ...(localOverrides[id] || {}), _deleted: true };
+    rewards.items = rewards.items.filter(x => x.id !== id);
+    pushOverrides(); renderChests();
+  }));
+  $("chestGrid").querySelectorAll("[data-photo]").forEach(inp => inp.addEventListener("change", () => savePhoto(inp.dataset.photo, inp.files[0])));
+}
+
+function editChest(id){
+  const r = rewards.items.find(x => x.id === id); if (!r) return;
+  const o = modal(`<h2>Truhla</h2>
+    <div class="stack" style="margin-top:12px; text-align:left">
+      <label class="field"><span class="eyebrow">Název</span><input type="text" id="ecTitle" value="${esc(r.title)}"></label>
+      <label class="field"><span class="eyebrow">Vzkaz</span><textarea id="ecNote" style="min-height:70px">${esc(r.note)}</textarea></label>
+      <label class="field"><span class="eyebrow">Odemkne se na levelu</span><input type="number" id="ecLvl" min="1" max="16" value="${r.lvl}"></label>
+    </div>
+    <div class="row" style="margin-top:14px"><button class="btn ghost" data-close style="flex:1">Zpět</button><button class="btn primary" id="ecSave" style="flex:1">Uložit</button></div>`);
+  o.querySelector("#ecSave").addEventListener("click", () => {
+    r.title = o.querySelector("#ecTitle").value.trim() || r.title;
+    r.note = o.querySelector("#ecNote").value.trim();
+    r.lvl = Math.max(1, Math.min(16, parseInt(o.querySelector("#ecLvl").value) || r.lvl));
+    localOverrides[r.id] = { ...(localOverrides[r.id] || {}), title: r.title, note: r.note, lvl: r.lvl };
+    o.remove(); pushOverrides(); renderChests();
+  });
+}
+
+async function savePhoto(id, file){
+  if (!file) return;
+  if (file.size > 15 * 1024 * 1024) { toast("Fotka je moc velká (max 15 MB)."); return; }
+  toast("Ukládám fotku…");
+  const ok = await idbPut(id, file);
+  if (!ok) { toast("Fotku se nepodařilo uložit."); return; }
+  try { if (photoUrls[id]) URL.revokeObjectURL(photoUrls[id]); photoUrls[id] = URL.createObjectURL(file); } catch(e){}
+  renderChests();
+  toast("Fotka je v truhle — v tomhle zařízení.");
+}
+
+function renderActEditor(){
+  $("actEditor").innerHTML = state.acts.map(a => `
+    <div class="row wrap" style="gap:8px; padding:9px 0; border-top:1px dashed var(--hair)">
+      <input type="text" data-atitle="${a.id}" value="${esc(a.title)}" style="flex:2 1 150px">
+      <input type="text" data-aboss="${a.id}" value="${esc(a.boss)}" style="flex:1 1 110px" placeholder="boss">
+      <span class="chip">${actQuests(a.id).length} úkolů</span>
+      <button class="q-del" data-adel="${a.id}" aria-label="Smazat etapu ${esc(a.title)}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+      </button>
+    </div>`).join("");
+  $("actEditor").querySelectorAll("[data-atitle]").forEach(i => i.addEventListener("change", () => {
+    const a = state.acts.find(x => x.id === i.dataset.atitle); if (a) { a.title = i.value.trim() || a.title; render(); pushState(); }
+  }));
+  $("actEditor").querySelectorAll("[data-aboss]").forEach(i => i.addEventListener("change", () => {
+    const a = state.acts.find(x => x.id === i.dataset.aboss); if (a) { a.boss = i.value.trim() || a.boss; render(); pushState(); }
+  }));
+  $("actEditor").querySelectorAll("[data-adel]").forEach(b => b.addEventListener("click", () => {
+    if (state.acts.length <= 1) { toast("Aspoň jedna etapa tu musí zůstat."); return; }
+    state.acts = state.acts.filter(a => a.id !== b.dataset.adel);
+    state.quests = state.quests.filter(q => q.act !== b.dataset.adel);
+    render(); pushState();
+  }));
+}
+
+function renderBackup(){
+  const lb = state.lastBackup;
+  $("lastBackup").textContent = lb ? "Poslední záloha: " + new Date(lb).toLocaleDateString("cs-CZ") : "Zatím jsi nezálohovala.";
+  const stale = !lb || (Date.now() - lb) > 14 * 86400000;
+  $("backupWarn").hidden = !(stale && state.xp > 0);
+}
+
+/* ==================================================================
+   HROMADNÉ PŘIDÁNÍ ÚKOLŮ
+   ================================================================== */
+function bulkAdd(){
+  const raw = $("bulkInput").value.split("\n").map(l => l.trim()).filter(Boolean);
+  if (!raw.length) { toast("Napiš aspoň jeden řádek."); return; }
+  let target = state.activeAct, acts = 0, quests = 0;
+  raw.forEach(line => {
+    if (line.startsWith("#")) {
+      const [t, boss] = line.slice(1).split("|").map(s => s.trim());
+      const id = uid();
+      state.acts.push({ id, title: t || "Etapa", boss: boss || "Bezejmenná hrozba", art: BOSS_ART[state.acts.length % BOSS_ART.length], taunt: "" });
+      target = id; acts++;
+    } else {
+      let diff = 2, title = line;
+      const m = line.match(/\s*!([123])\s*$/);
+      if (m) { diff = parseInt(m[1]); title = line.slice(0, m.index).trim(); }
+      if (!title) return;
+      state.quests.push({ id: uid(), act: target, title: title.slice(0, 160), diff, done: false, doneAt: null, touched: Date.now() });
+      quests++;
+    }
+  });
+  $("bulkInput").value = "";
+  render(); pushState(); showView("camp");
+  toast(quests + " úkolů" + (acts ? " a " + acts + " etap" : "") + " přidáno.");
+}
+
+/* ==================================================================
+   ZÁLOHA
+   ================================================================== */
+function doExport(){
+  state.lastBackup = Date.now();
+  pushState();
+  const data = { app: "kapybari-diplomka", v: 1, exportedAt: new Date().toISOString(), state, overrides: localOverrides };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "diplomka-zaloha-" + todayKey() + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  renderBackup();
+  toast("Záloha stažena. Pošli si ji radši i mailem.");
+}
+function doImport(file){
+  if (!file) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    let d;
+    try { d = JSON.parse(fr.result); } catch(e){ toast("Tenhle soubor se nepodařilo přečíst."); return; }
+    if (!d || !d.state || !Array.isArray(d.state.quests)) { toast("Tohle není záloha téhle appky."); return; }
+    const o = modal(`<h2>Načíst zálohu?</h2>
+      <p class="muted" style="font-size:13.5px; margin-top:8px">Záloha z ${esc(new Date(d.exportedAt || Date.now()).toLocaleDateString("cs-CZ"))} obsahuje ${d.state.quests.length} úkolů a ${d.state.xp || 0} XP. Přepíše to, co máš teď v téhle appce.</p>
+      <div class="row" style="margin-top:14px"><button class="btn ghost" data-close style="flex:1">Zrušit</button><button class="btn primary" id="imYes" style="flex:1">Načíst</button></div>`);
+    o.querySelector("#imYes").addEventListener("click", () => {
+      state = d.state;
+      if (d.overrides) { localOverrides = d.overrides; pushOverrides(); }
+      o.remove(); fillProfileForm(); pushState(); loadRewards(); render();
+      toast("Záloha načtena.");
+    });
+  };
+  fr.readAsText(file);
+}
+
+/* ==================================================================
+   ROZVRH — čas rozsekaný na bloky, ať je vidět vždycky jen ten jeden
+   ================================================================== */
+const DAY = 86400000;
+const pl = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4 ? b : c);
+const dm = (d) => d.getDate() + ". " + (d.getMonth() + 1) + ".";
+let viewBlock = null;
+
+function planCfg(){
+  if (!state.plan) state.plan = { start: null, blockDays: 7, assign: {} };
+  if (!state.plan.assign) state.plan.assign = {};
+  if (!state.plan.blockDays) state.plan.blockDays = 7;
+  return state.plan;
+}
+function midnight(d){ const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+function planStart(){
+  const p = planCfg();
+  if (p.start) { const d = new Date(p.start + "T00:00:00"); if (!isNaN(d)) return d; }
+  return midnight(new Date());
+}
+function planBlocks(){
+  if (!state.profile.deadline) return [];
+  const dl = new Date(state.profile.deadline + "T23:59:59");
+  if (isNaN(dl)) return [];
+  const days = Math.max(3, Math.min(30, parseInt(planCfg().blockDays) || 7));
+  let from = planStart();
+  if (from > dl) from = midnight(new Date());
+  const out = [];
+  while (from <= dl && out.length < 60) {
+    let to = new Date(from.getTime() + (days - 1) * DAY);
+    to.setHours(23, 59, 59, 999);
+    out.push({ i: out.length, from: new Date(from), to: to > dl ? dl : to });
+    from = midnight(new Date(from.getTime() + days * DAY + 3 * 3600000)); // +3h kvůli letnímu času
+  }
+  if (!out.length) out.push({ i: 0, from: midnight(new Date()), to: dl });
+  return out;
+}
+function curBlockIdx(blocks){
+  const now = Date.now();
+  for (const b of blocks) if (now <= b.to.getTime()) return b.i;
+  return Math.max(0, blocks.length - 1);
+}
+function orderedQuests(){
+  const out = [];
+  state.acts.forEach(a => state.quests.forEach(q => { if (q.act === a.id) out.push(q); }));
+  return out;
+}
+function blockOf(q, cur, blocks){
+  const a = planCfg().assign[q.id];
+  if (q.done) {
+    if (a !== undefined && a !== null) return a;
+    if (q.doneAt && blocks) {
+      const b = blocks.find(x => q.doneAt >= x.from.getTime() && q.doneAt <= x.to.getTime());
+      if (b) return b.i;
+    }
+    return -1;
+  }
+  if (a === undefined || a === null) return cur;
+  return a < cur ? cur : a;   // co se nestihlo, samo spadne do právě běžícího bloku
+}
+function assignAuto(){
+  const blocks = planBlocks();
+  if (!blocks.length) return false;
+  const p = planCfg();
+  const cur = curBlockIdx(blocks), last = blocks.length - 1;
+  const open = orderedQuests().filter(q => !q.done);
+  const total = open.reduce((s, q) => s + qxp(q), 0);
+  const per = total / Math.max(1, last - cur + 1);
+  let bi = cur, acc = 0;
+  open.forEach(q => {
+    if (acc > 0 && bi < last && acc + qxp(q) / 2 > per) { bi++; acc = 0; }
+    p.assign[q.id] = bi;
+    acc += qxp(q);
+  });
+  if (!p.start) p.start = dayKey(midnight(new Date()));
+  return true;
+}
+function blockStats(b, cur, blocks){
+  const qs = state.quests.filter(q => blockOf(q, cur, blocks) === b.i);
+  const done = qs.filter(q => q.done);
+  return { qs, done, xp: qs.reduce((s, q) => s + qxp(q), 0), doneXp: done.reduce((s, q) => s + qxp(q), 0) };
+}
+function pace(blocks, cur){
+  let sum = 0, n = 0;
+  blocks.forEach(b => {
+    if (b.i >= cur) return;
+    n++;
+    sum += state.quests
+      .filter(q => q.done && q.doneAt && q.doneAt >= b.from.getTime() && q.doneAt <= b.to.getTime())
+      .reduce((s, q) => s + qxp(q), 0);
+  });
+  return n ? sum / n : null;
+}
+function moveQuest(id, toIdx){
+  const blocks = planBlocks(); if (!blocks.length) return;
+  planCfg().assign[id] = Math.max(0, Math.min(blocks.length - 1, toIdx));
+  render(); pushState();
+}
+
+function renderSchedule(){
+  const blocks = planBlocks();
+  $("schedNone").hidden = blocks.length > 0;
+  $("schedBody").hidden = blocks.length === 0;
+  $("blockDays").value = String(planCfg().blockDays);
+  if (!blocks.length) return;
+
+  const cur = curBlockIdx(blocks);
+  if (viewBlock !== null && (viewBlock < 0 || viewBlock >= blocks.length)) viewBlock = null;
+  const idx = viewBlock === null ? cur : viewBlock;
+  const b = blocks[idx];
+  const st = blockStats(b, cur, blocks);
+  const open = st.qs.filter(q => !q.done);
+  const weekly = planCfg().blockDays === 7;
+
+  $("weekTitle").textContent = idx === cur
+    ? (weekly ? "Tenhle týden" : "Tenhle blok")
+    : (idx < cur ? "Uplynulý blok" : "Blok napřed");
+  $("weekRange").textContent = `${dm(b.from)} – ${dm(b.to)} · ${idx + 1}/${blocks.length}`;
+
+  let calm;
+  if (idx !== cur) {
+    calm = idx < cur
+      ? `Tenhle blok už uplynul. Co v něm nezůstalo hotové, najdeš teď v aktuálním.`
+      : `Tohle tě čeká později. Dívat se sem nemusíš — ale když máš náskok, klidně si něco přitáhni.`;
+  } else if (!st.qs.length) {
+    calm = "Na tenhle blok nemáš nic. Buď si dej volno, nebo si přitáhni něco z dalšího.";
+  } else if (!open.length) {
+    calm = "<b>Hotovo.</b> Tenhle blok máš splněný. Všechno další je náskok, ne povinnost.";
+  } else {
+    const dLeft = Math.max(1, Math.ceil((b.to.getTime() - Date.now()) / DAY));
+    calm = `Zbývá <b>${open.length} ${pl(open.length, "úkol", "úkoly", "úkolů")}</b> a ${dLeft} ${pl(dLeft, "den", "dny", "dní")}. Víc než tohle teď řešit nemusíš.`;
+  }
+  const carried = state.quests.filter(q => {
+    const a = planCfg().assign[q.id];
+    return !q.done && a !== undefined && a !== null && a < cur;
+  }).length;
+  if (idx === cur && carried) calm += ` <span class="dim">Z minula se přeneslo ${carried} ${pl(carried, "úkol", "úkoly", "úkolů")} — s tím se počítá, nic se neděje.</span>`;
+  if (idx !== cur) calm += ` <button class="mv" id="backToNow" style="margin-left:4px">zpět na teď</button>`;
+  $("weekCalm").innerHTML = calm;
+
+  $("weekList").innerHTML = st.qs.length ? st.qs.map(q => {
+    const act = state.acts.find(a => a.id === q.act);
+    return `<li class="quest${q.done ? " done" : ""}">
+      <button class="tick" data-wq="${q.id}" aria-pressed="${q.done}" aria-label="${q.done ? "Vrátit" : "Splněno"}: ${esc(q.title)}">
+        <svg viewBox="0 0 24 24" stroke="currentColor"><path d="M4 12l6 6L20 6"/></svg>
+      </button>
+      <div class="q-body">
+        <div class="q-title">${esc(q.title)}</div>
+        <div class="q-meta">
+          <span class="chip">${esc(act ? act.title : "")}</span>
+          <span class="chip xp">${qxp(q)} XP</span>
+          ${!q.done && idx < blocks.length - 1 ? `<button class="mv" data-defer="${q.id}" data-to="${idx + 1}">odložit dál →</button>` : ""}
+          ${!q.done && idx > cur ? `<button class="mv" data-defer="${q.id}" data-to="${cur}">← vzít teď</button>` : ""}
+        </div>
+      </div>
+    </li>`;
+  }).join("") : `<li class="dim" style="padding:12px 2px; font-size:13.5px">Prázdno.</li>`;
+
+  const maxXp = Math.max(1, ...blocks.map(x => blockStats(x, cur, blocks).xp));
+  $("timeline").innerHTML = blocks.map(x => {
+    const s = blockStats(x, cur, blocks);
+    const h = Math.max(6, Math.round(s.xp / maxXp * 100));
+    const f = s.xp ? Math.round(s.doneXp / s.xp * 100) : 0;
+    return `<i class="${x.i === cur ? "now" : x.i < cur ? "past" : ""}" style="height:${h}%"><b style="height:${f}%"></b></i>`;
+  }).join("");
+
+  $("blockList").innerHTML = blocks.map(x => {
+    const s = blockStats(x, cur, blocks);
+    const pct = s.xp ? Math.round(s.doneXp / s.xp * 100) : 0;
+    const cls = x.i === cur ? "now" : (x.i < cur ? "past" : "");
+    return `<button class="blk ${cls}" data-blk="${x.i}">
+      <span class="bi">${weekly ? "T" : "B"}${x.i + 1}</span>
+      <span>
+        <span class="bt">${s.qs.length ? s.done.length + " / " + s.qs.length + " " + pl(s.qs.length, "úkol", "úkoly", "úkolů") : "volno"}</span>
+        <span class="bd">${dm(x.from)} – ${dm(x.to)}</span>
+        <span class="bmini"><i style="width:${pct}%"></i></span>
+      </span>
+      <span class="bn">${s.xp ? s.xp + " XP" : ""}</span>
+    </button>`;
+  }).join("");
+
+  const p = pace(blocks, cur);
+  const remain = state.quests.filter(q => !q.done).reduce((s, q) => s + qxp(q), 0);
+  const slots = blocks.length - cur;
+  let note = "";
+  if (!remain) note = "Všechno je hotové. Vážně.";
+  else if (p === null) note = `Zbývá ${remain} XP na ${slots} ${pl(slots, "blok", "bloky", "bloků")}. Až uplyne první blok, řeknu ti, jestli to tempo sedí.`;
+  else {
+    const need = Math.round(remain / Math.max(1, slots));
+    const avg = Math.round(p);
+    if (avg === 0) note = `Zatím jsi v uplynulých blocích nic neodškrtla. Zkus zkrátit bloky nebo ubrat úkolů — menší cíl se plní líp.`;
+    else if (need > avg * 1.35) note = `Potřebuješ ${need} XP na blok, zatím děláš ${avg}. Je toho víc, než se stíhá — lepší teď ubrat rozsah nebo posunout termín než to řešit v posledním týdnu.`;
+    else if (need < avg * 0.7) note = `Máš náskok: stačilo by ${need} XP na blok a děláš ${avg}. Klidně zvolni.`;
+    else note = `Jsi v tempu: potřebuješ ${need} XP na blok a děláš ${avg}.`;
+  }
+  $("realityNote").textContent = note;
+  const dl = daysLeft();
+  $("schedMeta").textContent = `${blocks.length} ${pl(blocks.length, "blok", "bloky", "bloků")}${dl !== null ? " · " + Math.max(0, dl) + " dní do odevzdání" : ""}`;
+
+  $("weekList").querySelectorAll("[data-wq]").forEach(el => el.addEventListener("click", () => toggleQuest(el.dataset.wq)));
+  $("weekList").querySelectorAll("[data-defer]").forEach(el => el.addEventListener("click", () => moveQuest(el.dataset.defer, parseInt(el.dataset.to))));
+  $("blockList").querySelectorAll("[data-blk]").forEach(el => el.addEventListener("click", () => {
+    const i = parseInt(el.dataset.blk);
+    viewBlock = (i === curBlockIdx(planBlocks())) ? null : i;
+    renderSchedule();
+  }));
+  const back = $("backToNow");
+  if (back) back.addEventListener("click", () => { viewBlock = null; renderSchedule(); });
+}
+
+/* ==================================================================
+   SYNCHRONIZACE — postup centrálně, ať přežije telefon
+   ================================================================== */
+function syncCfg(){ return lsGet("capy.sync", null) || { base:"", room:"", token:"", vapid:"" }; }
+function syncSave(c){ lsSet("capy.sync", c); writeSwCfg(c); }
+function syncOn(){ const c = syncCfg(); return !!(c.base && c.room && c.token); }
+let syncRev = lsGet("capy.rev", 0) || 0;
+let syncBusy = false, syncAgain = false, syncTries = 0;
+
+const randKey = (n) => {
+  const b = new Uint8Array(n); crypto.getRandomValues(b);
+  return [...b].map(x => "abcdefghijkmnpqrstuvwxyz23456789"[x % 32]).join("");
+};
+function pairCode(c){
+  try { return "capy:" + btoa(JSON.stringify({ b: c.base, r: c.room, t: c.token, v: c.vapid || "" })).replace(/=+$/, ""); }
+  catch(e){ return ""; }
+}
+function readPair(code){
+  try {
+    const raw = String(code).trim().replace(/^capy:/, "");
+    const d = JSON.parse(atob(raw.padEnd(Math.ceil(raw.length / 4) * 4, "=")));
+    if (!d.b || !d.r || !d.t) return null;
+    return { base: String(d.b).replace(/\/+$/, ""), room: String(d.r), token: String(d.t), vapid: String(d.v || "") };
+  } catch(e){ return null; }
+}
+
+/** Sloučení dvou verzí. U úkolů rozhoduje poslední dotek, ne to, kdo psal později. */
+function mergeState(remote, local){
+  if (!remote || !Array.isArray(remote.quests) || !Array.isArray(remote.acts)) return local;
+  const newer = (remote.stamp || 0) >= (local.stamp || 0) ? remote : local;
+  const older = newer === remote ? local : remote;
+  const out = JSON.parse(JSON.stringify(newer));
+
+  const byId = {};
+  [...(older.quests || []), ...(newer.quests || [])].forEach(q => {
+    const cur = byId[q.id];
+    if (!cur || (q.touched || 0) >= (cur.touched || 0)) byId[q.id] = q;
+  });
+  const qOrder = (newer.quests || []).map(q => q.id);
+  const qSeen = new Set(qOrder);
+  out.quests = [...qOrder, ...Object.keys(byId).filter(id => !qSeen.has(id))].map(id => byId[id]).filter(Boolean);
+
+  const actById = {};
+  [...(older.acts || []), ...(newer.acts || [])].forEach(a => { actById[a.id] = a; });
+  const aOrder = (newer.acts || []).map(a => a.id);
+  const aSeen = new Set(aOrder);
+  out.acts = [...aOrder, ...Object.keys(actById).filter(id => !aSeen.has(id))].map(id => actById[id]).filter(Boolean);
+
+  out.plan = { ...(older.plan || {}), ...(newer.plan || {}) };
+  out.plan.assign = { ...((older.plan || {}).assign || {}), ...((newer.plan || {}).assign || {}) };
+
+  const ns = newer.streak || {}, os = older.streak || {};
+  out.streak = (ns.count || 0) >= (os.count || 0) ? { ...ns } : { ...os };
+  out.streak.best = Math.max(ns.best || 0, os.best || 0);
+
+  const seen = new Set();
+  out.log = [...(newer.log || []), ...(older.log || [])]
+    .filter(l => { const k = l.t + "|" + l.text; if (seen.has(k)) return false; seen.add(k); return true; })
+    .sort((a, b) => b.t - a.t).slice(0, 40);
+
+  out.stamp = Math.max(newer.stamp || 0, older.stamp || 0);
+  return out;
+}
+
+function syncApi(path, extra){
+  const c = syncCfg();
+  return { url: `${c.base}${path}${path.includes("?") ? "&" : "?"}room=${encodeURIComponent(c.room)}${extra || ""}`,
+           headers: { authorization: "Bearer " + c.token } };
+}
+function syncStatus(txt){
+  const el = $("syncState"); if (!el) return;
+  if (txt) { el.textContent = txt; return; }
+  if (!syncOn()) { el.textContent = "Vypnutá — postup je jen v tomhle zařízení."; return; }
+  const at = lsGet("capy.syncAt", 0);
+  const push = lsGet("capy.push", false) ? " · upozornění zapnutá" : "";
+  el.textContent = at
+    ? "Naposledy srovnáno " + new Date(at).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }) + push
+    : "Zapnutá" + push;
+}
+
+async function syncPull(){
+  if (!syncOn()) return;
+  try {
+    const a = syncApi("/api/state");
+    const r = await fetch(a.url, { headers: a.headers });
+    if (r.status === 404) { await syncPush(); return; }
+    if (r.status === 403) { syncStatus("Server odmítl klíč — zkontroluj párovací kód."); return; }
+    if (!r.ok) { syncStatus("Server neodpovídá, jedu z paměti telefonu."); return; }
+    const d = await r.json();
+    if (d.rev !== syncRev && d.doc && Object.keys(d.doc).length) {
+      state = mergeState(d.doc, state);
+      lsSet("capy.state", state);
+      fillProfileForm(); render();
+    }
+    syncRev = d.rev; lsSet("capy.rev", syncRev);
+    lsSet("capy.syncAt", Date.now()); syncStatus();
+  } catch(e){ syncStatus("Offline — uložím to, až bude signál."); }
+}
+
+async function syncPush(){
+  if (!syncOn()) return;
+  if (syncBusy) { syncAgain = true; return; }
+  syncBusy = true;
+  try {
+    const a = syncApi("/api/state");
+    const r = await fetch(a.url, {
+      method: "PUT",
+      headers: { ...a.headers, "content-type": "application/json" },
+      body: JSON.stringify({ rev: syncRev, doc: state }),
+    });
+    if (r.status === 409) {
+      const d = await r.json();
+      state = mergeState(d.doc, state);
+      syncRev = d.rev;
+      lsSet("capy.rev", syncRev); lsSet("capy.state", state);
+      fillProfileForm(); render();
+      if (syncTries++ < 3) syncAgain = true;   // pošleme sloučenou verzi
+    } else if (r.status === 403) {
+      syncStatus("Server odmítl klíč — zkontroluj párovací kód.");
+    } else if (r.ok) {
+      const d = await r.json();
+      syncRev = d.rev; syncTries = 0;
+      lsSet("capy.rev", syncRev); lsSet("capy.syncAt", Date.now());
+      syncStatus();
+    } else {
+      syncStatus("Uložit se to nepovedlo, zkusím to znovu.");
+    }
+  } catch(e){ syncStatus("Offline — uložím to, až bude signál."); }
+  finally {
+    syncBusy = false;
+    if (syncAgain) { syncAgain = false; setTimeout(syncPush, 400); }
+  }
+}
+
+/* konfigurace i pro service worker, ať umí k upozornění dotáhnout text */
+function writeSwCfg(c){
+  try {
+    const req = indexedDB.open("capy-sync", 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore("cfg"); };
+    req.onsuccess = () => {
+      const db = req.result;
+      const tx = db.transaction("cfg", "readwrite");
+      tx.objectStore("cfg").put({ base: c.base, room: c.room, token: c.token }, "cfg");
+    };
+  } catch(e){}
+}
+
+const urlB64 = (s) => {
+  const pad = "=".repeat((4 - s.length % 4) % 4);
+  const raw = atob((s + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from([...raw].map(ch => ch.charCodeAt(0)));
+};
+async function enablePush(){
+  const c = syncCfg();
+  if (!syncOn()) { toast("Nejdřív zapni synchronizaci."); return; }
+  if (!c.vapid) { toast("Chybí veřejný klíč serveru — doplň ho v poli výš."); return; }
+  if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+    toast("Tenhle prohlížeč upozornění neumí."); return;
+  }
+  if (!matchMedia("(display-mode: standalone)").matches && /iPhone|iPad/.test(navigator.userAgent)) {
+    toast("Na iPhonu to jde až z appky přidané na plochu."); return;
+  }
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") { toast("Bez povolení upozornění nepůjdou."); return; }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64(c.vapid) });
+    const a = syncApi("/api/push/subscribe");
+    const r = await fetch(a.url, {
+      method: "POST", headers: { ...a.headers, "content-type": "application/json" },
+      body: JSON.stringify(sub.toJSON ? sub.toJSON() : sub),
+    });
+    if (r.ok) { lsSet("capy.push", true); syncStatus(); toast("Upozornění zapnutá. Ozvu se ráno."); }
+    else toast("Server odběr nepřijal.");
+  } catch(e){ toast("Upozornění se zapnout nepovedla."); }
+}
+
+function renderSync(){
+  const c = syncCfg(), on = syncOn();
+  $("syncOff").hidden = on;
+  $("syncOn").hidden = !on;
+  if (on) $("pairCode").textContent = pairCode(c);
+  else { $("syncBase").value = c.base || ""; $("syncVapid").value = c.vapid || ""; }
+  syncStatus();
+}
+
+$("syncStart").addEventListener("click", async () => {
+  const base = $("syncBase").value.trim().replace(/\/+$/, "");
+  if (!/^https:\/\/.+/.test(base)) { toast("Adresa musí začínat https://"); return; }
+  const c = { base, room: randKey(12), token: randKey(32), vapid: $("syncVapid").value.trim() };
+  syncSave(c); syncRev = 0; lsSet("capy.rev", 0);
+  renderSync(); syncStatus("Zakládám…");
+  await syncPush();
+  toast("Zapnuto. Párovací kód vlož do druhého zařízení.");
+});
+$("syncJoin").addEventListener("click", async () => {
+  const c = readPair($("syncCode").value);
+  if (!c) { toast("Tenhle kód se nepodařilo přečíst."); return; }
+  syncSave(c); syncRev = 0; lsSet("capy.rev", 0);
+  renderSync(); syncStatus("Stahuji…");
+  await syncPull();
+  toast("Připojeno.");
+});
+$("syncCopy").addEventListener("click", async () => {
+  const code = pairCode(syncCfg());
+  try { await navigator.clipboard.writeText(code); toast("Kód zkopírován."); }
+  catch(e){ toast("Zkopíruj ho prosím ručně."); }
+});
+$("syncNow").addEventListener("click", async () => { syncStatus("Srovnávám…"); await syncPull(); await syncPush(); });
+$("pushOn").addEventListener("click", enablePush);
+$("syncStop").addEventListener("click", () => {
+  const o = modal(`<h2>Odpojit synchronizaci?</h2><p class="muted" style="font-size:13.5px; margin-top:8px">Postup zůstane v tomhle zařízení i na serveru. Jen se přestanou srovnávat.</p>
+    <div class="row" style="margin-top:14px"><button class="btn ghost" data-close style="flex:1">Nechat</button><button class="btn primary" id="soYes" style="flex:1; background:var(--hp); color:#fff">Odpojit</button></div>`);
+  o.querySelector("#soYes").addEventListener("click", () => {
+    lsSet("capy.sync", { base:"", room:"", token:"", vapid:"" });
+    lsSet("capy.push", false); lsSet("capy.rev", 0); syncRev = 0;
+    o.remove(); renderSync(); toast("Odpojeno.");
+  });
+});
+
+/* ==================================================================
+   NAVIGACE A FORMULÁŘE
+   ================================================================== */
+const VIEWS = ["camp","capy","chest","plan","me"];
+function showView(v){
+  VIEWS.forEach(x => $("view-" + x).hidden = (x !== v));
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.view === v)));
+  window.scrollTo(0, 0);
+  lsSet("capy.view", v);
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => showView(t.dataset.view)));
+
+$("quickAdd").addEventListener("submit", e => {
+  e.preventDefault();
+  const v = $("quickAddInput").value.trim(); if (!v) return;
+  state.quests.push({ id: uid(), act: state.activeAct, title: v, diff: parseInt($("quickAddDiff").value) || 2, done: false, doneAt: null, touched: Date.now() });
+  $("quickAddInput").value = "";
+  render(); pushState();
+});
+$("addActForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const t = $("addActTitle").value.trim(); if (!t) return;
+  state.acts.push({ id: uid(), title: t, boss: $("addActBoss").value.trim() || "Bezejmenná hrozba", art: BOSS_ART[state.acts.length % BOSS_ART.length], taunt: "" });
+  $("addActTitle").value = ""; $("addActBoss").value = "";
+  render(); pushState();
+});
+$("bulkAdd").addEventListener("click", bulkAdd);
+$("goProfile").addEventListener("click", () => { showView("me"); $("fDeadline").focus(); });
+$("blockDays").addEventListener("change", () => {
+  planCfg().blockDays = parseInt($("blockDays").value) || 7;
+  planCfg().start = dayKey(midnight(new Date()));
+  viewBlock = null;
+  assignAuto(); render(); pushState();
+  toast("Rozvrženo po " + planCfg().blockDays + " dnech.");
+});
+$("redistribute").addEventListener("click", () => {
+  viewBlock = null;
+  if (assignAuto()) { render(); pushState(); toast("Zbylé úkoly jsou rozvržené do konce."); }
+  else toast("Nejdřív vyplň termín odevzdání.");
+});
+$("addChest").addEventListener("click", () => {
+  const lvl = Math.max(2, rewards.items.reduce((m, r) => Math.max(m, r.lvl), 0) + 2);
+  const id = "loc" + uid();
+  localOverrides[id] = { id, lvl, title: "Nová odměna", note: "", file: null };
+  rewards.items.push({ ...localOverrides[id] });
+  pushOverrides(); renderChests();
+});
+
+[["fName","name"],["fTopic","topic"],["fAtelier","atelier"],["fDeadline","deadline"]].forEach(([el, key]) => {
+  $(el).addEventListener("change", () => {
+    state.profile[key] = $(el).value;
+    if (key === "deadline" && $(el).value && !Object.keys(planCfg().assign).length) {
+      planCfg().start = dayKey(midnight(new Date()));
+      if (assignAuto()) toast("Termín mám. Úkoly jsou rozvržené po týdnech — mrkni na Rozvrh.");
+    }
+    render(); pushState();
+  });
+});
+$("krystofMode").addEventListener("change", () => { lsSet("capy.krystof", $("krystofMode").checked); renderChests(); });
+$("doExport").addEventListener("click", doExport);
+$("doImport").addEventListener("change", e => doImport(e.target.files[0]));
+$("resetProgress").addEventListener("click", () => {
+  const o = modal(`<h2>Vynulovat postup?</h2><p class="muted" style="font-size:13.5px; margin-top:8px">Všechny úkoly se odškrtnou a XP spadne na nulu. Seznam úkolů, etap ani truhly to nesmaže.</p>
+    <div class="row" style="margin-top:14px"><button class="btn ghost" data-close style="flex:1">Nechat být</button><button class="btn primary" id="rpYes" style="flex:1; background:var(--hp); color:#fff">Vynulovat</button></div>`);
+  o.querySelector("#rpYes").addEventListener("click", () => {
+    state.quests.forEach(q => { q.done = false; q.doneAt = null; });
+    state.xp = 0; state.log = []; state.seenLevel = 1;
+    state.streak = { count: 0, best: state.streak.best || 0, lastDay: null };
+    o.remove(); render(); pushState(); toast("Vynulováno.");
+  });
+});
+document.querySelectorAll("[data-theme-set]").forEach(b => b.addEventListener("click", () => {
+  const v = b.dataset.themeSet;
+  if (v === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", v);
+  lsSet("capy.theme", v);
+}));
+
+function fillProfileForm(){
+  $("fName").value = state.profile.name || "";
+  $("fTopic").value = state.profile.topic || "";
+  $("fAtelier").value = state.profile.atelier || "";
+  $("fDeadline").value = state.profile.deadline || "";
+}
+
+/* ==================================================================
+   START
+   ================================================================== */
+(function boot(){
+  const s = lsGet("capy.state", null);
+  if (s && Array.isArray(s.acts) && Array.isArray(s.quests)) state = s;
+  localOverrides = lsGet("capy.overrides", {}) || {};
+  const th = lsGet("capy.theme", "auto");
+  if (th === "light" || th === "dark") document.documentElement.setAttribute("data-theme", th);
+  $("krystofMode").checked = !!lsGet("capy.krystof", false);
+  fillProfileForm();
+  render();
+  showView(lsGet("capy.view", "camp") || "camp");
+})();
+
+(async () => {
+  idb = await openIdb();
+  photoUrls = await idbAll();
+  await loadRewards();
+})();
+
+/* synchronizace: srovnat po startu, při návratu do appky a jednou za dvě minuty */
+renderSync();
+if (syncOn()) {
+  writeSwCfg(syncCfg());
+  syncPull();
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && Date.now() - (lsGet("capy.syncAt", 0) || 0) > 20000) syncPull();
+  });
+  setInterval(() => { if (!document.hidden) syncPull(); }, 120000);
+  window.addEventListener("online", () => syncPush());
+}
+
+/* ať iOS neuklidí data po týdnu nečinnosti */
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persist().catch(() => {});
+}
+
+/* offline provoz */
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>

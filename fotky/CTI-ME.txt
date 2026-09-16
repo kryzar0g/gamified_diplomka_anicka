@@ -1,0 +1,7 @@
+Sem nahraj fotky k odměnám.
+
+1. Zkopíruj sem obrázek, třeba mi-dva-v-alpach.jpg
+2. V souboru odmeny.json napiš k té odměně:  "file": "mi-dva-v-alpach.jpg"
+3. Celou složku znovu nasaď na hosting.
+
+Fotku klidně zmenši na šířku ~1600 px, ať se to na mobilu načítá rychle.

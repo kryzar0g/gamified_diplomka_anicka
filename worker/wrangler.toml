@@ -1,0 +1,19 @@
+name = "kapybari-diplomka"
+main = "src/worker.js"
+compatibility_date = "2025-09-01"
+
+# Sem patří ID databáze, které ti vypíše `npx wrangler d1 create kapybari-diplomka`
+[[d1_databases]]
+binding = "DB"
+database_name = "kapybari-diplomka"
+database_id = "SEM-VLOZ-ID-DATABAZE"
+
+[triggers]
+# 7:00 UTC = 8:00 v zimě, 9:00 v létě. Chceš-li jinak, uprav hodinu.
+crons = ["0 7 * * *"]
+
+[vars]
+# Odkud smí appka volat. Nahraď adresou svých GitHub Pages, ať do toho nelezou cizí stránky.
+ALLOW_ORIGIN = "*"
+VAPID_SUBJECT = "mailto:TVUJ@EMAIL.cz"   # jen kontakt pro push službu, dej svůj
+# VAPID_PUBLIC se nastavuje taky jako var (není tajný) — viz JAK-NASADIT.md

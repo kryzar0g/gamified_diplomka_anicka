@@ -1,0 +1,16 @@
+{
+  "name": "Kapybaří diplomka",
+  "short_name": "Diplomka",
+  "description": "Gamifikovaný tracker diplomové práce — bossové, XP, kapybary a zamčené odměny.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#152F2A",
+  "theme_color": "#152F2A",
+  "lang": "cs",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

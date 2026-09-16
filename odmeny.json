@@ -1,0 +1,11 @@
+{
+  "_navod": "Tohle jsou truhly s odměnami. Uprav texty, k fotce napiš název souboru, který nahraješ do složky fotky/. Level = kdy se truhla odemkne. Po úpravě soubor znovu nasaď na hosting.",
+  "items": [
+    { "id": "r1", "lvl": 2,  "title": "Kafe na zavolání",          "note": "Uvařím ti kafe a nezeptám se, jak jsi daleko.",        "file": null },
+    { "id": "r2", "lvl": 4,  "title": "Večer bez diplomky",        "note": "Jeden večer, kdy se o práci nemluví. Ani slovo.",      "file": null },
+    { "id": "r3", "lvl": 6,  "title": "Masáž zad",                 "note": "Po dni u počítače. Dvacet minut, bez řečí.",           "file": null },
+    { "id": "r4", "lvl": 8,  "title": "Výlet za kapybarami",       "note": "Zoo, den volna, nic jiného na programu.",              "file": null },
+    { "id": "r5", "lvl": 10, "title": "Večeře, kterou vybereš ty", "note": "Cokoliv. Fakt cokoliv.",                               "file": null },
+    { "id": "r6", "lvl": 12, "title": "Obhájeno",                  "note": "Tohle si otevřeš, až to bude celé hotové. Věřím ti.",  "file": null }
+  ]
+}
