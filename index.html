@@ -375,6 +375,37 @@ label.field>span{display:block; margin-bottom:5px}
 .qnote{font-size:12.5px; color:var(--ink3); line-height:1.4; margin-top:4px; white-space:pre-wrap; word-break:break-word}
 .qnote:empty{display:none}
 
+/* pořadí etap */
+.ord{display:inline-flex; gap:4px}
+.mv:disabled{opacity:.3; cursor:default}
+.capy.r5{border-color:color-mix(in srgb,#B69CE0 60%,var(--line))}
+.capy.r6{border-color:var(--gold); border-width:2px}
+
+/* kapybaří lázně — vlastní malý svět, stejný v obou motivech */
+.spa-scene{position:relative; height:210px; margin-top:12px; border-radius:14px; overflow:hidden;
+  background:linear-gradient(#D6EEE6, #A8D7CB); border:1px solid var(--line); user-select:none; -webkit-user-select:none}
+.spa-scene.night{background:linear-gradient(#18264A, #31527A)}
+.spa-scene::after{content:""; position:absolute; z-index:0; left:8%; right:8%; bottom:8px; height:74px; border-radius:50%;
+  background:radial-gradient(ellipse at 50% 40%, #A6DCEF, #6FB7D6); opacity:.95}
+.spa-capy{position:absolute; z-index:2; left:50%; bottom:20px; width:128px; transform:translateX(-50%);
+  border:0; background:transparent; padding:0; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent}
+.spa-capy svg{width:100%; height:auto; display:block}
+.spa-capy.pat{animation:pat .22s}
+@keyframes pat{50%{transform:translateX(-50%) scale(1.08,.92)}}
+.spa-deco{position:absolute; z-index:1; line-height:1; pointer-events:none}
+.spa-friend{left:6%; bottom:16px; width:78px}
+.spa-friend svg{width:100%; height:auto; display:block}
+.spa-pop{position:absolute; z-index:3; font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:15px; color:#B4471B;
+  pointer-events:none; transform:translateX(-50%); animation:float .9s forwards}
+.spa-shop{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; margin-top:10px}
+.shop-it{display:flex; align-items:center; gap:9px; border:1px solid var(--line); background:var(--bg2); color:var(--ink);
+  border-radius:10px; padding:8px 10px; text-align:left; font-size:13px; line-height:1.25}
+.shop-it .em{font-size:22px; line-height:1}
+.shop-it .c{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--ink3)}
+.shop-it.own{opacity:.55}
+.shop-it:disabled{cursor:default}
+.shop-it:not(:disabled):hover{border-color:var(--blade)}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important}
 }
@@ -481,6 +512,24 @@ label.field>span{display:block; margin-bottom:5px}
 
     <!-- ============ KAPYBÁRIUM ============ -->
     <section id="view-capy" class="stack" hidden style="padding-top:14px">
+      <div class="panel" id="spaBox">
+        <div class="row">
+          <h2>Kapybaří lázně</h2>
+          <span class="spacer"></span>
+          <span class="chip gold" id="spaYuzu">0 🍊</span>
+        </div>
+        <p class="muted" style="margin:6px 0 0; font-size:13px" id="spaHint"></p>
+        <div class="spa-scene" id="spaScene">
+          <button class="spa-capy" id="spaCapy" aria-label="Pohladit kapybaru"></button>
+        </div>
+        <div class="row" style="justify-content:space-between; margin-top:8px">
+          <span class="eyebrow" id="spaEnergy"></span>
+          <span class="eyebrow" id="spaPower"></span>
+        </div>
+        <div class="divider" style="margin-top:12px"><span>Obchůdek</span></div>
+        <div class="spa-shop" id="spaShop"></div>
+      </div>
+
       <div class="panel">
         <h2>Kapybárium</h2>
         <p class="muted" style="margin:6px 0 0; font-size:13.5px">Za každý level ti přijde jedna kapybara. Bydlí tady, ať se máš na co koukat, když to nejde.</p>
@@ -501,7 +550,7 @@ label.field>span{display:block; margin-bottom:5px}
       <div class="capys" id="chestGrid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>
       <div id="chestAdmin" hidden class="panel stack">
         <div class="divider"><span>Režim Kryštof</span></div>
-        <p class="dim" style="margin:0; font-size:13px">Truhly upravené tady se uloží jen do tohohle zařízení. Trvale je nastavíš v souboru <b class="mono">odmeny.json</b>.</p>
+        <p class="dim" style="margin:0; font-size:13px" id="chestAdminNote"></p>
         <button class="btn" id="addChest">+ Nová truhla</button>
       </div>
     </section>
@@ -569,7 +618,7 @@ label.field>span{display:block; margin-bottom:5px}
       </div>
 
       <details class="fold">
-        <summary>Upravit seznam úkolů</summary>
+        <summary>Etapy a úkoly — pořadí, přidávání</summary>
         <div class="foldin stack">
         <div>
           <h3>Hromadné přidání úkolů</h3>
@@ -736,11 +785,18 @@ const dayKey = (d) => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")
 const todayKey = () => dayKey(new Date());
 const DIFF_XP = {1:10, 2:25, 3:50};
 const DIFF_LABEL = {1:"S", 2:"M", 3:"L"};
-const LEVELS = [0,25,60,105,160,225,300,385,480,585,700,825,960,1105,1260,1425];
+/* Prvních 16 prahů se NESMÍ měnit — jinak by jí spadl level. Nové se jen přidávají na konec. */
+const LEVELS = [0,25,60,105,160,225,300,385,480,585,700,825,960,1105,1260,1425,
+  1600,1785,1980,2185,2400,2625,2860,3105,3360,3625,3900,4185,4480,4785];
+/** XP potřebné na level n. Za koncem tabulky to jde dál po 320 XP, ať levely nikdy nedojdou. */
+function lvlThreshold(n){
+  if (n <= LEVELS.length) return LEVELS[n - 1];
+  return LEVELS[LEVELS.length - 1] + (n - LEVELS.length) * 320;
+}
 
-function levelFromXp(xp){ let l = 1; for (let i = 0; i < LEVELS.length; i++) if (xp >= LEVELS[i]) l = i + 1; return l; }
-function levelFloor(l){ return LEVELS[Math.min(l, LEVELS.length) - 1] ?? 0; }
-function levelCeil(l){ return l < LEVELS.length ? LEVELS[l] : null; }
+function levelFromXp(xp){ let l = 1; while (xp >= lvlThreshold(l + 1)) l++; return l; }
+function levelFloor(l){ return lvlThreshold(l); }
+function levelCeil(l){ return lvlThreshold(l + 1); }
 
 /* ---------- výchozí plán (FA ČVUT, editovatelný) ---------- */
 const BOSS_ART = ["list","prokrastinaurus","golem","krakatice","oponent"];
@@ -784,6 +840,13 @@ const FALLBACK_REWARDS = [
   { id:"r4", lvl:8,  title:"Výlet za kapybarami",       note:"Zoo, den volna, nic jiného na programu.", file:null },
   { id:"r5", lvl:10, title:"Večeře, kterou vybereš ty", note:"Cokoliv. Fakt cokoliv.", file:null },
   { id:"r6", lvl:12, title:"Obhájeno",                  note:"Tohle si otevřeš, až to bude celé hotové. Věřím ti.", file:null },
+  { id:"r7",  lvl:17, title:"Snídaně do postele", note:"V sobotu. Ty spíš, já vařím.", file:null },
+  { id:"r8",  lvl:19, title:"Film podle tebe",    note:"Vybereš ho ty a já nebudu remcat. Ani u romantiky.", file:null },
+  { id:"r9",  lvl:21, title:"Den bez budíku",     note:"Celý den. Žádné plány, žádný seznam.", file:null },
+  { id:"r10", lvl:23, title:"Kytka jen tak",      note:"Bez důvodu. To je ten důvod.", file:null },
+  { id:"r11", lvl:25, title:"Masáž nohou",        note:"Po tom všem běhání po ateliéru.", file:null },
+  { id:"r12", lvl:27, title:"Výlet, kam chceš",   note:"Řekni místo, zbytek zařídím já.", file:null },
+  { id:"r13", lvl:30, title:"Ing. arch.",         note:"Tohle si otevřeš, až budeš mít titul. Jsem na tebe hrozně pyšný.", file:null },
 ];
 
 /* ---------- kapybary ---------- */
@@ -804,8 +867,22 @@ const CAPYS = [
   { lvl:14, name:"Oslava",    acc:"party",   fur:"#D6A87B", r:4, f:"Dort má. Důvod si najde." },
   { lvl:15, name:"Ospalka",   acc:"sleep",   fur:"#C68C58", r:4, f:"Zasloužený spánek. Nebuď ji." },
   { lvl:16, name:"Královna",  acc:"queen",   fur:"#DEB183", r:4, f:"Titul, duha a bazén. Víc netřeba." },
+  { lvl:17, name:"Pizzička",    acc:"pizza",   fur:"#C99361", r:4, f:"Kousek pizzy o půlnoci. Nejlepší jídlo odevzdávkového týdne." },
+  { lvl:18, name:"Notebook",    acc:"laptop",  fur:"#C68C58", r:4, f:"Píše textovou část. Zatím nadpis, ale hezký." },
+  { lvl:19, name:"Srdíčko",     acc:"heart",   fur:"#D2A273", r:4, f:"Tuhle ti posílám já. Nic víc k tomu nepotřebuje." },
+  { lvl:20, name:"Mašlička",    acc:"bow",     fur:"#DEB183", r:4, f:"Mašle na hlavě. Na konzultaci chce vypadat dobře." },
+  { lvl:21, name:"Knihomolka",  acc:"book",    fur:"#BE8853", r:4, f:"Rešerše jí jde líp, když leží." },
+  { lvl:22, name:"Dárek",       acc:"gift",    fur:"#CE9A69", r:5, f:"Nese ti něco. Co to je, se dozvíš v truhle." },
+  { lvl:23, name:"Melounek",    acc:"melon",   fur:"#C99361", r:5, f:"Meloun v listopadu. Prostě chtěla." },
+  { lvl:24, name:"Balerína",    acc:"tutu",    fur:"#D6A87B", r:5, f:"Tančí, protože render vyšel napoprvé." },
+  { lvl:25, name:"Čepička",     acc:"beanie",  fur:"#C68C58", r:5, f:"Zima, ateliér netopí. Čepice zůstává." },
+  { lvl:26, name:"Věneček",     acc:"wreath",  fur:"#D2A273", r:5, f:"Natrhala kytky a udělala si věnec. Zasloužila si ho." },
+  { lvl:27, name:"Jednorožec",  acc:"unicorn", fur:"#E3BC93", r:5, f:"Kapybara s rohem. Vzácnější než klidný týden před odevzdáním." },
+  { lvl:28, name:"Hvězdička",   acc:"stars",   fur:"#CE9A69", r:5, f:"Kouzlí. Hlavně ať se výkresy vytisknou napoprvé." },
+  { lvl:29, name:"Architektka", acc:"beret",   fur:"#BE8853", r:5, f:"Baret a trojúhelník. Ví přesně, kde má být okno." },
+  { lvl:30, name:"Ing. arch.",  acc:"grad",    fur:"#DEB183", r:6, f:"Titul. Tahle je poslední a nejdůležitější. Jsem na tebe pyšný." },
 ];
-const RARITY = {1:"obyčejná", 2:"vzácná", 3:"epická", 4:"legendární"};
+const RARITY = {1:"obyčejná", 2:"vzácná", 3:"epická", 4:"legendární", 5:"mýtická", 6:"diplomovaná"};
 
 function capyArt(c){
   const OL = "#4A3426";
@@ -888,6 +965,52 @@ function capyArt(c){
   if (a === "sleep") front = `
     <g stroke="none" fill="${OL}" font-family="'IBM Plex Mono',monospace" font-weight="600">
       <text x="104" y="38" font-size="15">z</text><text x="115" y="25" font-size="19">z</text></g>`;
+
+  if (a === "pizza") front = `
+    <g transform="rotate(-15 108 82)"><path d="M92 66l34 6-22 30z" fill="#F2C45A"/><path d="M92 66l34 6-1.5 6-31-5z" fill="#D9A15A"/>
+    <g stroke="none" fill="#E4695B"><circle cx="106" cy="78" r="3.4"/><circle cx="114" cy="82" r="3"/><circle cx="105" cy="88" r="2.6"/></g></g>`;
+  if (a === "laptop") front = `
+    <rect x="47" y="80" width="46" height="27" rx="3" fill="#B7C1BC"/>
+    <path d="M40 113h60l-6-7H46z" fill="#9AA6A0"/>
+    <path d="M66 91c2-3 4-3 4 0 0-3 2-3 4 0 0 3-4 5-4 5s-4-2-4-5z" fill="#EE8B7E" stroke="none"/>`;
+  if (a === "heart") front = `
+    <path d="M104 96c-13-8-15-19-8-22 4-2 8 1 8 4 0-3 4-6 8-4 7 3 5 14-8 22z" fill="#EE8B7E"/>
+    <g stroke="none" fill="#F3A0B8"><path d="M18 34c-5-3-6-8-3-9 2-1 3 0 3 2 0-2 1-3 3-2 3 1 2 6-3 9z"/><path d="M124 26c-4-3-5-7-2-8 2-1 2 0 2 2 0-2 1-3 3-2 2 1 1 5-3 8z"/></g>`;
+  if (a === "bow") front = `
+    <g transform="translate(93 16)"><path d="M0 0l-15-9v18z" fill="#F3A0B8"/><path d="M0 0l15-9v18z" fill="#F3A0B8"/><circle r="4.5" fill="#E77F9C"/></g>`;
+  if (a === "book") front = `
+    <path d="M41 85c9-3 21-2 29 3 8-5 20-6 29-3v25c-9-2-21-1-29 4-8-5-20-6-29-4z" fill="#8FC9E8"/>
+    <path d="M70 89c-8-5-18-5-25-3v21c7-1 17-1 25 3z" fill="#F5EAD9" stroke-width="2.4"/>
+    <path d="M70 89c8-5 18-5 25-3v21c-7-1-17-1-25 3z" fill="#F5EAD9" stroke-width="2.4"/>`;
+  if (a === "gift") front = `
+    <rect x="94" y="78" width="28" height="24" rx="2" fill="#EE8B7E"/><rect x="92" y="72" width="32" height="8" rx="2" fill="#F07D6E"/>
+    <path d="M108 72v30" stroke="#F2C45A" stroke-width="4"/>
+    <path d="M108 72c-6-8-12-6-10-1 1 2 6 2 10 1zM108 72c6-8 12-6 10-1-1 2-6 2-10 1z" fill="#F2C45A" stroke-width="2.2"/>`;
+  if (a === "melon") front = `
+    <path d="M90 74a26 26 0 0 0 36 26z" fill="#8FBF6A"/><path d="M94 77a21 21 0 0 0 28 20z" fill="#EE8B7E" stroke="none"/>
+    <g stroke="none" fill="#3E2C1E"><circle cx="103" cy="85" r="1.6"/><circle cx="110" cy="91" r="1.6"/><circle cx="101" cy="79" r="1.4"/></g>`;
+  if (a === "tutu") mid = `
+    <path d="M28 92q14-12 42-12t42 12q-6 10-14 6-6 8-14 2-6 8-14 0-8 8-14 0-8 6-14-2-8 4-14-6z" fill="#F3A0B8"/>`;
+  if (a === "beanie") front = `
+    <path d="M32 31c0-28 76-28 76 0z" fill="#8FC9E8"/><rect x="30" y="26" width="80" height="10" rx="5" fill="#6FAFD0"/>
+    <circle cx="70" cy="8" r="6.5" fill="#F5EAD9"/>`;
+  if (a === "wreath") front = `
+    <g stroke-width="2"><circle cx="40" cy="25" r="6" fill="#F3A0B8"/><circle cx="54" cy="18" r="6" fill="#F2C45A"/><circle cx="70" cy="16" r="6" fill="#8FC9E8"/><circle cx="86" cy="18" r="6" fill="#F3A0B8"/><circle cx="100" cy="25" r="6" fill="#F2C45A"/></g>
+    <g stroke="none" fill="#83BC5C"><ellipse cx="47" cy="21" rx="4" ry="2"/><ellipse cx="62" cy="16" rx="4" ry="2"/><ellipse cx="78" cy="16" rx="4" ry="2"/><ellipse cx="93" cy="21" rx="4" ry="2"/></g>`;
+  if (a === "unicorn") front = `
+    <path d="M64 21l6-20 6 20z" fill="#F2C45A"/><path d="M66 14h8M67.5 8h5" stroke-width="2"/>
+    <g stroke="none"><circle cx="37" cy="27" r="6" fill="#F3A0B8"/><circle cx="33" cy="37" r="5.5" fill="#B69CE0"/><circle cx="33" cy="47" r="5" fill="#8FC9E8"/></g>`;
+  if (a === "stars") front = `
+    <path d="M104 98l13-30" stroke-width="3"/>
+    <path d="M118 52l3.5 8 8.5.8-6.5 5.6 2 8.4-7.5-4.4-7.5 4.4 2-8.4-6.5-5.6 8.5-.8z" fill="#F2C45A"/>
+    <g stroke="none" fill="#F2C45A"><path d="M20 30l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/><path d="M26 70l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z"/></g>`;
+  if (a === "beret") front = `
+    <ellipse cx="62" cy="21" rx="30" ry="9" fill="#C0553A"/><circle cx="62" cy="12" r="3" fill="#C0553A"/>
+    <path d="M97 104V70l26 34z" fill="none" stroke="#6FAFD0" stroke-width="5"/>`;
+  if (a === "grad") front = `
+    <path d="M70 4l40 12-40 12-40-12z" fill="#3E4F49"/><path d="M48 20v8c14 6 30 6 44 0v-8" fill="#3E4F49"/>
+    <path d="M108 16v16" stroke="#F2C45A" stroke-width="2.4"/><circle cx="108" cy="33" r="3" fill="#F2C45A" stroke="none"/>
+    <g transform="rotate(-20 104 92)"><rect x="90" y="86" width="30" height="11" rx="5.5" fill="#F5EAD9"/><rect x="102" y="86" width="5" height="11" fill="#EE8B7E" stroke-width="2"/></g>`;
 
   const closed = (a === "sleep");
   const eyes = closed
@@ -1056,7 +1179,7 @@ function idbAll(){
     tx.oncomplete = () => {
       (kq.result || []).forEach((k, i) => {
         const b = vq.result[i];
-        if (b) { try { out[k] = URL.createObjectURL(b); } catch(e){} }
+        if (b instanceof Blob) { try { out[k] = URL.createObjectURL(b); } catch(e){} }
       });
       res(out);
     };
@@ -1074,13 +1197,128 @@ async function loadRewards(){
       if (Array.isArray(j?.items)) remote = j.items;
     }
   } catch(e){ /* otevřeno z disku nebo offline — jedeme na výchozích */ }
-  const base = remote || FALLBACK_REWARDS;
-  const merged = base.map(r => ({ ...r, ...(localOverrides[r.id] || {}) }));
-  Object.keys(localOverrides).forEach(id => {
-    if (!base.find(r => r.id === id) && !localOverrides[id]._deleted) merged.push({ ...localOverrides[id], id });
+  rewardsBase = remote || FALLBACK_REWARDS;
+  computeRewards();
+  renderChests();
+}
+
+/* Úpravy truhel (z režimu Kryštof) žijí ve sdíleném stavu — state.rewardEdits —
+   takže se synchronizují s ostatními zařízeními v téže místnosti. Dřív byly jen
+   v localStorage zařízení, kde se psaly, a nikam se nedostaly. */
+let rewardsBase = FALLBACK_REWARDS;
+function rEdits(){
+  if (!state.rewardEdits || typeof state.rewardEdits !== "object") state.rewardEdits = {};
+  return state.rewardEdits;
+}
+function computeRewards(){
+  const ed = rEdits();
+  const merged = rewardsBase.map(r => ({ ...r, ...(ed[r.id] || {}) }));
+  Object.keys(ed).forEach(id => {
+    if (!rewardsBase.find(r => r.id === id) && ed[id].title !== undefined) merged.push({ ...ed[id], id });
   });
   rewards = { items: merged.filter(r => !r._deleted) };
-  renderChests();
+}
+/** Sloučí úpravy truhel do cílového stavu; u každé truhly vyhrává novější. Vrací, jestli se něco změnilo. */
+function mergeEditsInto(target, edits){
+  if (!edits) return false;
+  if (!target.rewardEdits || typeof target.rewardEdits !== "object") target.rewardEdits = {};
+  let zmena = false;
+  Object.entries(edits).forEach(([id, e]) => {
+    const cur = target.rewardEdits[id];
+    const t = e.t || 1;
+    if (!cur || (cur.t || 0) < t) { target.rewardEdits[id] = { ...e, t }; zmena = true; }
+  });
+  return zmena;
+}
+function setRewardEdit(id, patch){
+  const ed = rEdits();
+  ed[id] = { ...(ed[id] || {}), ...patch, t: Date.now() };
+  localOverrides[id] = { ...ed[id] }; pushOverrides();      // záloha v zařízení
+  pushState(); computeRewards(); renderChests();
+}
+/** Úpravy psané ve staré verzi (jen v tomhle prohlížeči) přenese do sdíleného stavu. */
+function migrateLocalOverrides(){
+  if (mergeEditsInto(state, localOverrides)) { pushState(); computeRewards(); renderChests(); }
+}
+
+/* --- fotky v truhlách: zmenšené a uložené na serveru, každá jako vlastní dokument --- */
+const syncedPhotos = {}, photoLoading = {}, photoFailed = {};
+function idbGet(key){
+  return new Promise(res => {
+    if (!idb) return res(null);
+    try {
+      const g = idb.transaction("photos", "readonly").objectStore("photos").get(key);
+      g.onsuccess = () => res(g.result || null); g.onerror = () => res(null);
+    } catch(e){ res(null); }
+  });
+}
+async function compressImage(file, max = 1000, q = 0.75){
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    let d = c.toDataURL("image/jpeg", q);
+    if (d.length > 700000) d = c.toDataURL("image/jpeg", 0.55);
+    return d;
+  } finally { URL.revokeObjectURL(url); }
+}
+const photoRoom = (id) => syncCfg().room + "-f-" + id;
+async function photoPut(id, dataUrl){
+  const c = syncCfg(), h = { authorization: "Bearer " + c.token };
+  const u = `${c.base}/api/state?room=${encodeURIComponent(photoRoom(id))}`;
+  let rev = 0;
+  const g = await fetch(u, { headers: h });
+  if (g.ok) rev = (await g.json()).rev;
+  const p = await fetch(u, { method: "PUT", headers: { ...h, "content-type": "application/json" },
+    body: JSON.stringify({ rev, doc: { img: dataUrl, t: Date.now() } }) });
+  return p.ok;
+}
+async function photoGet(id){
+  const c = syncCfg();
+  const r = await fetch(`${c.base}/api/state?room=${encodeURIComponent(photoRoom(id))}`, { headers: { authorization: "Bearer " + c.token } });
+  if (!r.ok) return null;
+  const d = await r.json();
+  return d?.doc?.img || null;
+}
+function ensureSyncedPhoto(r){
+  if (!r.photo || !syncOn()) return;
+  const k = r.id + ":" + r.pv;
+  if (syncedPhotos[r.id]?.pv === r.pv || photoLoading[r.id] || photoFailed[k]) return;
+  photoLoading[r.id] = true;
+  (async () => {
+    try {
+      const cached = await idbGet("sync:" + r.id);
+      if (cached && cached.pv === r.pv) syncedPhotos[r.id] = cached;
+      else {
+        const img = await photoGet(r.id);
+        if (img) { syncedPhotos[r.id] = { pv: r.pv, img }; idbPut("sync:" + r.id, { pv: r.pv, img }); }
+        else photoFailed[k] = true;
+      }
+    } catch(e){ photoFailed[k] = true; }
+    photoLoading[r.id] = false;
+    renderChests();
+  })();
+}
+/** Fotky nahrané ve staré verzi jen do tohohle zařízení pošle na server. */
+async function migrateLocalPhotos(){
+  if (!syncOn() || !idb) return;
+  for (const id of Object.keys(photoUrls)) {
+    const e = rEdits()[id];
+    if (e && e.photo) continue;
+    if (!rewards.items.find(r => r.id === id)) continue;
+    try {
+      const blob = await (await fetch(photoUrls[id])).blob();
+      const data = await compressImage(blob);
+      if (await photoPut(id, data)) {
+        const pv = Date.now();
+        syncedPhotos[id] = { pv, img: data }; idbPut("sync:" + id, { pv, img: data });
+        setRewardEdit(id, { photo: true, pv });
+      }
+    } catch(e){}
+  }
 }
 
 /* ==================================================================
@@ -1119,7 +1357,7 @@ function toggleQuest(id){
   q.done = !q.done;
   q.doneAt = q.done ? Date.now() : null;
   q.touched = Date.now();
-  if (q.done) { bumpStreak(); addLog(q.title, qxp(q)); hitBoss(qxp(q)); toast(POCHVALY[Math.floor(Math.random() * POCHVALY.length)]); }
+  if (q.done) { bumpStreak(); addLog(q.title, qxp(q)); hitBoss(qxp(q)); spaGrantQuest(q); toast(POCHVALY[Math.floor(Math.random() * POCHVALY.length)]); }
   else { addLog("Vráceno: " + q.title, -qxp(q)); }
   state.xp = totalXp();
   const afterLvl = levelFromXp(state.xp);
@@ -1198,7 +1436,7 @@ function render(){
   state.xp = totalXp();
   renderHeader(); renderActs(); renderBoss(); renderQuests(); renderStats(); renderLog(); renderToday();
   renderCapys(); renderChests(); renderActEditor(); renderBackup(); renderSchedule(); renderStart();
-  renderMsts(); focusTick();
+  renderMsts(); focusTick(); renderSpa();
 }
 
 function renderHeader(){
@@ -1265,7 +1503,7 @@ function renderQuests(){
           <span class="chip">${DIFF_LABEL[q.diff] || "M"}</span>
           <span class="chip xp">${qxp(q)} XP</span>
           ${focusCfg().byQuest[q.id] ? `<span class="chip">${focusCfg().byQuest[q.id]} min</span>` : ""}
-          <button class="mv" data-note="${q.id}">${q.note ? "poznámka" : "+ poznámka"}</button>
+          <button class="mv" data-note="${q.id}">upravit</button>
         </div>
       </div>
       <button class="q-del" data-del="${q.id}" aria-label="Smazat úkol ${esc(q.title)}">
@@ -1284,16 +1522,30 @@ function renderQuests(){
 /** Poznámka u úkolu — kam jsem to uložila, co ještě chybí, co říkal vedoucí. */
 function editNote(id){
   const q = state.quests.find(x => x.id === id); if (!q) return;
-  const o = modal(`<h2>Poznámka</h2>
-    <p class="muted" style="font-size:13px; margin:6px 0 0; text-align:left">${esc(q.title)}</p>
-    <textarea id="qnTxt" style="min-height:110px; margin-top:10px" placeholder="Co ještě chybí, kam jsi to uložila, co říkal vedoucí…">${esc(q.note || "")}</textarea>
+  const o = modal(`<h2>Úkol</h2>
+    <div class="stack" style="margin-top:12px; text-align:left">
+      <label class="field"><span class="eyebrow">Název</span><input type="text" id="qnTitle" value="${esc(q.title)}"></label>
+      <div class="row" style="gap:8px">
+        <label class="field" style="flex:2"><span class="eyebrow">Etapa</span>
+          <select id="qnAct">${state.acts.map(a => `<option value="${a.id}" ${a.id === q.act ? "selected" : ""}>${esc(a.title)}</option>`).join("")}</select></label>
+        <label class="field" style="flex:1"><span class="eyebrow">Náročnost</span>
+          <select id="qnDiff"><option value="1" ${q.diff === 1 ? "selected" : ""}>S · 10</option><option value="2" ${q.diff === 2 ? "selected" : ""}>M · 25</option><option value="3" ${q.diff === 3 ? "selected" : ""}>L · 50</option></select></label>
+      </div>
+      <label class="field"><span class="eyebrow">Poznámka</span>
+        <textarea id="qnTxt" style="min-height:90px" placeholder="Co ještě chybí, kam jsi to uložila, co říkal vedoucí…">${esc(q.note || "")}</textarea></label>
+    </div>
     <div class="row" style="margin-top:14px"><button class="btn ghost" data-close style="flex:1">Zpět</button><button class="btn primary" id="qnSave" style="flex:1">Uložit</button></div>`);
-  const ta = o.querySelector("#qnTxt");
-  setTimeout(() => ta.focus(), 60);
   o.querySelector("#qnSave").addEventListener("click", () => {
-    q.note = ta.value.trim().slice(0, 600);
+    const novaEtapa = o.querySelector("#qnAct").value;
+    const presun = novaEtapa !== q.act;
+    q.title = o.querySelector("#qnTitle").value.trim().slice(0, 160) || q.title;
+    q.diff = parseInt(o.querySelector("#qnDiff").value) || q.diff;
+    q.note = o.querySelector("#qnTxt").value.trim().slice(0, 600);
+    q.act = novaEtapa;
     q.touched = Date.now();
+    if (presun && !q.done) delete planCfg().assign[q.id];    // ať je hned v aktuálním týdnu
     o.remove(); render(); pushState();
+    if (presun) toast(`Přesunuto do „${state.acts.find(a => a.id === novaEtapa)?.title || ""}“. V rozvrhu je teď v tomhle týdnu — klidně ho odlož.`);
   });
 }
 
@@ -1360,18 +1612,24 @@ function renderCapys(){
 }
 
 function photoSrc(r){
+  if (r.photo && syncedPhotos[r.id] && syncedPhotos[r.id].pv === r.pv) return syncedPhotos[r.id].img;
   if (photoUrls[r.id]) return photoUrls[r.id];
   if (r.file) return "fotky/" + r.file;
   return null;
 }
 function renderChests(){
+  computeRewards();
   const lvl = levelFromXp(state.xp);
   const admin = $("krystofMode").checked;
   $("chestAdmin").hidden = !admin;
+  $("chestAdminNote").textContent = syncOn()
+    ? "Úpravy i fotky se ukládají na server a dostanou se k ní — pokud je tohle zařízení připojené k jejímu postupu (odkazem z jejího telefonu)."
+    : "Synchronizace je tady vypnutá, takže úpravy uvidíš jen ty. Připoj se odkazem z jejího telefonu (Profil → Poslat odkaz na připojení).";
   $("chestIntro").textContent = admin
     ? "Režim Kryštof je zapnutý — vidíš i zamčené truhly a můžeš je upravovat."
     : "Něco jsem ti sem schoval. Odemyká se to levelem, takže se k tomu dřív nedostaneš. Promiň.";
   const items = [...rewards.items].sort((a, b) => a.lvl - b.lvl);
+  items.forEach(r => { if (r.lvl <= lvl || admin) ensureSyncedPhoto(r); });
   const ceil = levelCeil(lvl);
   $("chestGrid").innerHTML = items.map(r => {
     const open = r.lvl <= lvl;
@@ -1389,7 +1647,7 @@ function renderChests(){
     }
     return `<div class="chest${open ? "" : " locked"}">
       ${src ? `<img class="chest-photo" src="${esc(src)}" alt="${esc(r.title)}" loading="lazy">`
-            : `<div class="seal"><div class="lockno">${admin ? "zatím bez fotky" : "🦫"}</div></div>`}
+            : `<div class="seal"><div class="lockno">${r.photo ? "načítám fotku…" : admin ? "zatím bez fotky" : "🦫"}</div></div>`}
       <div class="chest-in">
         <div class="row"><div class="t">${esc(r.title)}</div><span class="spacer"></span><span class="chip gold">lv ${r.lvl}</span></div>
         <div class="m">${esc(r.note)}</div>
@@ -1404,10 +1662,7 @@ function renderChests(){
 
   $("chestGrid").querySelectorAll("[data-editchest]").forEach(b => b.addEventListener("click", () => editChest(b.dataset.editchest)));
   $("chestGrid").querySelectorAll("[data-delchest]").forEach(b => b.addEventListener("click", () => {
-    const id = b.dataset.delchest;
-    localOverrides[id] = { ...(localOverrides[id] || {}), _deleted: true };
-    rewards.items = rewards.items.filter(x => x.id !== id);
-    pushOverrides(); renderChests();
+    setRewardEdit(b.dataset.delchest, { _deleted: true });
   }));
   $("chestGrid").querySelectorAll("[data-photo]").forEach(inp => inp.addEventListener("change", () => savePhoto(inp.dataset.photo, inp.files[0])));
 }
@@ -1418,32 +1673,50 @@ function editChest(id){
     <div class="stack" style="margin-top:12px; text-align:left">
       <label class="field"><span class="eyebrow">Název</span><input type="text" id="ecTitle" value="${esc(r.title)}"></label>
       <label class="field"><span class="eyebrow">Vzkaz</span><textarea id="ecNote" style="min-height:70px">${esc(r.note)}</textarea></label>
-      <label class="field"><span class="eyebrow">Odemkne se na levelu</span><input type="number" id="ecLvl" min="1" max="16" value="${r.lvl}"></label>
+      <label class="field"><span class="eyebrow">Odemkne se na levelu</span><input type="number" id="ecLvl" min="1" max="60" value="${r.lvl}"></label>
     </div>
     <div class="row" style="margin-top:14px"><button class="btn ghost" data-close style="flex:1">Zpět</button><button class="btn primary" id="ecSave" style="flex:1">Uložit</button></div>`);
   o.querySelector("#ecSave").addEventListener("click", () => {
     r.title = o.querySelector("#ecTitle").value.trim() || r.title;
     r.note = o.querySelector("#ecNote").value.trim();
-    r.lvl = Math.max(1, Math.min(16, parseInt(o.querySelector("#ecLvl").value) || r.lvl));
-    localOverrides[r.id] = { ...(localOverrides[r.id] || {}), title: r.title, note: r.note, lvl: r.lvl };
-    o.remove(); pushOverrides(); renderChests();
+    r.lvl = Math.max(1, Math.min(60, parseInt(o.querySelector("#ecLvl").value) || r.lvl));
+    o.remove();
+    setRewardEdit(r.id, { title: r.title, note: r.note, lvl: r.lvl });
   });
 }
 
 async function savePhoto(id, file){
   if (!file) return;
-  if (file.size > 15 * 1024 * 1024) { toast("Fotka je moc velká (max 15 MB)."); return; }
-  toast("Ukládám fotku…");
-  const ok = await idbPut(id, file);
-  if (!ok) { toast("Fotku se nepodařilo uložit."); return; }
-  try { if (photoUrls[id]) URL.revokeObjectURL(photoUrls[id]); photoUrls[id] = URL.createObjectURL(file); } catch(e){}
+  if (file.size > 30 * 1024 * 1024) { toast("Fotka je moc velká (max 30 MB)."); return; }
+  toast("Zmenšuju a ukládám fotku…");
+  let data;
+  try { data = await compressImage(file); } catch(e){ toast("Tuhle fotku se nepodařilo načíst."); return; }
+  if (syncOn()) {
+    try {
+      if (await photoPut(id, data)) {
+        const pv = Date.now();
+        syncedPhotos[id] = { pv, img: data }; idbPut("sync:" + id, { pv, img: data });
+        setRewardEdit(id, { photo: true, pv });
+        toast("Fotka je v truhle a dostane se i k ní.");
+        return;
+      }
+    } catch(e){}
+    toast("Na server se to nepovedlo, nechávám ji jen tady.");
+  }
+  const blob = await (await fetch(data)).blob();
+  await idbPut(id, blob);
+  try { if (photoUrls[id]) URL.revokeObjectURL(photoUrls[id]); photoUrls[id] = URL.createObjectURL(blob); } catch(e){}
   renderChests();
-  toast("Fotka je v truhle — v tomhle zařízení.");
+  if (!syncOn()) toast("Fotka je jen v tomhle zařízení — bez synchronizace ji ona neuvidí.");
 }
 
 function renderActEditor(){
-  $("actEditor").innerHTML = state.acts.map(a => `
+  $("actEditor").innerHTML = state.acts.map((a, i) => `
     <div class="row wrap" style="gap:8px; padding:9px 0; border-top:1px dashed var(--hair)">
+      <span class="ord">
+        <button class="mv" data-aup="${a.id}" ${i === 0 ? "disabled" : ""} aria-label="Posunout etapu ${esc(a.title)} dřív">↑</button>
+        <button class="mv" data-adn="${a.id}" ${i === state.acts.length - 1 ? "disabled" : ""} aria-label="Posunout etapu ${esc(a.title)} později">↓</button>
+      </span>
       <input type="text" data-atitle="${a.id}" value="${esc(a.title)}" style="flex:2 1 150px">
       <input type="text" data-aboss="${a.id}" value="${esc(a.boss)}" style="flex:1 1 110px" placeholder="boss">
       <span class="chip">${actQuests(a.id).length} úkolů</span>
@@ -1457,12 +1730,24 @@ function renderActEditor(){
   $("actEditor").querySelectorAll("[data-aboss]").forEach(i => i.addEventListener("change", () => {
     const a = state.acts.find(x => x.id === i.dataset.aboss); if (a) { a.boss = i.value.trim() || a.boss; render(); pushState(); }
   }));
+  $("actEditor").querySelectorAll("[data-aup]").forEach(b => b.addEventListener("click", () => moveAct(b.dataset.aup, -1)));
+  $("actEditor").querySelectorAll("[data-adn]").forEach(b => b.addEventListener("click", () => moveAct(b.dataset.adn, +1)));
   $("actEditor").querySelectorAll("[data-adel]").forEach(b => b.addEventListener("click", () => {
     if (state.acts.length <= 1) { toast("Aspoň jedna etapa tu musí zůstat."); return; }
     state.acts = state.acts.filter(a => a.id !== b.dataset.adel);
     state.quests = state.quests.filter(q => q.act !== b.dataset.adel);
     render(); pushState();
   }));
+}
+
+/** Přehodí etapu a úkoly podle nového pořadí znovu rozvrhne — rozvrh jde po etapách. */
+function moveAct(id, dir){
+  const i = state.acts.findIndex(a => a.id === id), j = i + dir;
+  if (i < 0 || j < 0 || j >= state.acts.length) return;
+  [state.acts[i], state.acts[j]] = [state.acts[j], state.acts[i]];
+  const rozvrzeno = assignAuto();
+  render(); pushState();
+  toast(rozvrzeno ? "Přeskládáno. Úkoly jsem podle nového pořadí znovu rozvrhl do týdnů." : "Přeskládáno.");
 }
 
 function renderBackup(){
@@ -1833,6 +2118,14 @@ function mergeState(remote, local){
     .filter(l => { const k = l.t + "|" + l.text; if (seen.has(k)) return false; seen.add(k); return true; })
     .sort((a, b) => b.t - a.t).slice(0, 40);
 
+  // truhly: u každé vyhrává novější úprava
+  const re = { ...(older.rewardEdits || {}) };
+  Object.entries(newer.rewardEdits || {}).forEach(([id, e]) => { if (!re[id] || (e.t || 0) >= (re[id].t || 0)) re[id] = e; });
+  out.rewardEdits = re;
+  // lázně: novější stav vyhrává
+  const nsp = newer.spa, osp = older.spa;
+  out.spa = !nsp ? osp : !osp ? nsp : ((nsp.t || 0) >= (osp.t || 0) ? nsp : osp);
+
   out.stamp = Math.max(newer.stamp || 0, older.stamp || 0);
   return out;
 }
@@ -1980,11 +2273,14 @@ async function syncAdopt(){
     if (!r.ok) { toast("Server neodpovídá."); return; }
     const d = await r.json();
     if (d.doc && Array.isArray(d.doc.quests) && d.doc.quests.length) {
+      const mojeTruhly = state.rewardEdits;     // úpravy truhel si nesu s sebou
       state = d.doc;
+      mergeEditsInto(state, mojeTruhly);
       lsSet("capy.state", state);
     }
     syncRev = d.rev; lsSet("capy.rev", syncRev); lsSet("capy.syncAt", Date.now());
     fillProfileForm(); render(); syncStatus();
+    migrateLocalOverrides(); migrateLocalPhotos();
     toast("Připojeno, postup převzatý z druhého zařízení.");
   } catch(e){ toast("Připojení se nepovedlo."); }
 }
@@ -2095,6 +2391,7 @@ function focusEnd(dokonceno){
     f.byDay[todayKey()] = (f.byDay[todayKey()] || 0) + min;
     f.byQuest[c.questId] = (f.byQuest[c.questId] || 0) + min;
     bumpStreak();
+    spaGrantFocus(min);
   }
   pushState(); render();
   const q = state.quests.find(x => x.id === c.questId);
@@ -2208,6 +2505,110 @@ function renderMsts(){
     }
   }
 }
+
+/* ==================================================================
+   KAPYBAŘÍ LÁZNĚ — clicker, který se nedá prohrát na úkor diplomky:
+   pohlazení dochází a dobíjí se jen prací (úkoly, soustředění) a jednou denně
+   ================================================================== */
+const SPA_SHOP = [
+  { id:"kartac",  name:"Měkký kartáček",   em:"🪮", cost:30,   power:1 },
+  { id:"voda",    name:"Teplejší voda",    em:"♨️", cost:150,  power:2 },
+  { id:"rukav",   name:"Masážní rukavice", em:"🧤", cost:500,  power:3 },
+  { id:"kachna",  name:"Kachnička",        em:"🦆", cost:15,   at:[71,70,26] },
+  { id:"yuzu",    name:"Pomeranče do vody",em:"🍊", cost:40,   at:[22,72,22] },
+  { id:"kytky",   name:"Kytky u kraje",    em:"🌸", cost:70,   at:[8,52,26] },
+  { id:"bubl",    name:"Bublinky",         em:"🫧", cost:100,  at:[60,40,24] },
+  { id:"palma",   name:"Palma",            em:"🌴", cost:180,  at:[84,22,52] },
+  { id:"lampion", name:"Lampion",          em:"🏮", cost:260,  at:[12,10,30] },
+  { id:"bambus",  name:"Bambus",           em:"🎋", cost:350,  at:[2,24,44] },
+  { id:"duha",    name:"Duha",             em:"🌈", cost:600,  at:[40,2,46] },
+  { id:"kamos",   name:"Kamarádka",        em:"🦫", cost:900,  friend:true },
+  { id:"noc",     name:"Noční obloha",     em:"🌙", cost:1300, night:true },
+];
+const SPA_REAKCE = ["Spokojeně mhouří oči.", "Chce ještě.", "Tohle má ráda.", "Úplně se rozteklá.", "Kdyby uměla příst, přede."];
+function spa(){
+  if (!state.spa) state.spa = { yuzu: 0, total: 0, energy: 25, owned: [], daily: todayKey(), granted: {}, pats: 0, t: Date.now() };
+  const s = state.spa;
+  if (!Array.isArray(s.owned)) s.owned = [];
+  if (!s.granted || typeof s.granted !== "object") s.granted = {};
+  return s;
+}
+const spaPower = () => 1 + SPA_SHOP.filter(i => i.power && spa().owned.includes(i.id)).reduce((a, i) => a + i.power, 0);
+/** Odměna do lázní za práci — za každý úkol jen jednou, ať se nedá farmit odškrtáváním tam a zpátky. */
+function spaGrantQuest(q){
+  const s = spa();
+  if (s.granted[q.id]) return;
+  s.granted[q.id] = 1;
+  s.energy += 10; s.yuzu += Math.round(qxp(q) / 5); s.total += Math.round(qxp(q) / 5);
+  s.t = Date.now();
+}
+function spaGrantFocus(min){
+  const s = spa();
+  s.energy += 2 * min; s.yuzu += min; s.total += min; s.t = Date.now();
+}
+let spaKresleno = "";
+function renderSpa(){
+  const s = spa();
+  if (s.daily !== todayKey()) { s.daily = todayKey(); s.energy += 20; s.t = Date.now(); pushState(); }
+  $("spaYuzu").textContent = s.yuzu + " 🍊";
+  $("spaEnergy").textContent = "pohlazení: " + s.energy;
+  $("spaPower").textContent = "+" + spaPower() + " 🍊 za pohlazení";
+  $("spaHint").textContent = s.energy > 0
+    ? "Klepni na ni. Pomeranče utrácej v obchůdku dole."
+    : "Pohlazení došla. Přibudou za každý hotový úkol a za minuty u soustředění — ona počká.";
+  const scena = s.owned.join(",");
+  if (scena !== spaKresleno) {
+    spaKresleno = scena;
+    const sc = $("spaScene");
+    sc.classList.toggle("night", s.owned.includes("noc"));
+    sc.querySelectorAll(".spa-deco").forEach(d => d.remove());
+    SPA_SHOP.filter(i => s.owned.includes(i.id)).forEach(i => {
+      if (i.at) {
+        const d = document.createElement("span");
+        d.className = "spa-deco"; d.textContent = i.em;
+        d.style.left = i.at[0] + "%"; d.style.top = i.at[1] + "%"; d.style.fontSize = i.at[2] + "px";
+        sc.appendChild(d);
+      }
+      if (i.friend) {
+        const d = document.createElement("span");
+        d.className = "spa-deco spa-friend"; d.innerHTML = capyArt(CAPYS[1]);
+        sc.appendChild(d);
+      }
+    });
+    $("spaCapy").innerHTML = capyArt(CAPYS[7]);
+  }
+  $("spaShop").innerHTML = SPA_SHOP.map(i => {
+    const mam = s.owned.includes(i.id);
+    return `<button class="shop-it${mam ? " own" : ""}" data-buy="${i.id}" ${mam || s.yuzu < i.cost ? "disabled" : ""}>
+      <span class="em">${i.em}</span>
+      <span><span style="display:block; font-weight:600">${esc(i.name)}</span>
+        <span class="c">${mam ? "máš" : i.cost + " 🍊"}${i.power ? " · +" + i.power + " za klik" : ""}</span></span>
+    </button>`;
+  }).join("");
+  $("spaShop").querySelectorAll("[data-buy]").forEach(b => b.addEventListener("click", () => {
+    const i = SPA_SHOP.find(x => x.id === b.dataset.buy); const s2 = spa();
+    if (!i || s2.owned.includes(i.id) || s2.yuzu < i.cost) return;
+    s2.yuzu -= i.cost; s2.owned.push(i.id); s2.t = Date.now();
+    pushState(); renderSpa();
+    toast(i.power ? "Teď jí to dělá ještě větší radost." : i.name + " je v lázních.");
+  }));
+}
+$("spaCapy").addEventListener("click", (e) => {
+  const s = spa();
+  if (s.energy <= 0) { toast("Pohlazení došla. Dodělej něco a zase přibudou."); return; }
+  const p = spaPower();
+  s.energy -= 1; s.yuzu += p; s.total += p; s.pats = (s.pats || 0) + 1; s.t = Date.now();
+  const b = $("spaCapy");
+  b.classList.remove("pat"); void b.offsetWidth; b.classList.add("pat");
+  const sc = $("spaScene"), r = sc.getBoundingClientRect();
+  const pop = document.createElement("span");
+  pop.className = "spa-pop"; pop.textContent = "+" + p + " 🍊";
+  pop.style.left = ((e.clientX || r.left + r.width / 2) - r.left) + "px";
+  pop.style.top = ((e.clientY || r.top + r.height / 2) - r.top - 20) + "px";
+  sc.appendChild(pop); setTimeout(() => pop.remove(), 900);
+  if (s.pats % 25 === 0) toast(SPA_REAKCE[Math.floor(Math.random() * SPA_REAKCE.length)]);
+  pushState(); renderSpa();
+});
 
 /* ==================================================================
    UVÍTÁNÍ A PRVNÍ KROKY — ať stačí poslat odkaz a nic vysvětlovat
@@ -2387,11 +2788,10 @@ $("redistribute").addEventListener("click", () => {
   else toast("Nejdřív vyplň termín odevzdání.");
 });
 $("addChest").addEventListener("click", () => {
-  const lvl = Math.max(2, rewards.items.reduce((m, r) => Math.max(m, r.lvl), 0) + 2);
+  const lvl = Math.max(levelFromXp(state.xp) + 1, rewards.items.reduce((m, r) => Math.max(m, r.lvl), 0) + 1);
   const id = "loc" + uid();
-  localOverrides[id] = { id, lvl, title: "Nová odměna", note: "", file: null };
-  rewards.items.push({ ...localOverrides[id] });
-  pushOverrides(); renderChests();
+  setRewardEdit(id, { id, lvl, title: "Nová odměna", note: "", file: null });
+  toast("Truhla přidaná na level " + lvl + ". Klikni Upravit a napiš do ní něco.");
 });
 
 [["fName","name"],["fTopic","topic"],["fAtelier","atelier"],["fDeadline","deadline"]].forEach(([el, key]) => {
@@ -2450,6 +2850,8 @@ function fillProfileForm(){
   idb = await openIdb();
   photoUrls = await idbAll();
   await loadRewards();
+  migrateLocalOverrides();
+  migrateLocalPhotos();
 })();
 
 /* odpočet běží dál, i když appku mezitím zavřela */

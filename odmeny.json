@@ -1,11 +1,18 @@
 {
-  "_navod": "Tohle jsou truhly s odměnami. Uprav texty, k fotce napiš název souboru, který nahraješ do složky fotky/. Level = kdy se truhla odemkne. Po úpravě soubor znovu nasaď na hosting.",
+  "_navod": "Výchozí truhly. Texty můžeš měnit přímo v appce v režimu Kryštof (Profil) — ty úpravy se ukládají na server a mají přednost před tímhle souborem. Sem sahej jen kvůli fotkám ve složce fotky/.",
   "items": [
-    { "id": "r1", "lvl": 2,  "title": "Kafe na zavolání",          "note": "Uvařím ti kafe a nezeptám se, jak jsi daleko.",        "file": null },
-    { "id": "r2", "lvl": 4,  "title": "Večer bez diplomky",        "note": "Jeden večer, kdy se o práci nemluví. Ani slovo.",      "file": null },
-    { "id": "r3", "lvl": 6,  "title": "Masáž zad",                 "note": "Po dni u počítače. Dvacet minut, bez řečí.",           "file": null },
-    { "id": "r4", "lvl": 8,  "title": "Výlet za kapybarami",       "note": "Zoo, den volna, nic jiného na programu.",              "file": null },
-    { "id": "r5", "lvl": 10, "title": "Večeře, kterou vybereš ty", "note": "Cokoliv. Fakt cokoliv.",                               "file": null },
-    { "id": "r6", "lvl": 12, "title": "Obhájeno",                  "note": "Tohle si otevřeš, až to bude celé hotové. Věřím ti.",  "file": null }
+    {"id": "r1", "lvl": 2, "title": "Kafe na zavolání", "note": "Uvařím ti kafe a nezeptám se, jak jsi daleko.", "file": null},
+    {"id": "r2", "lvl": 4, "title": "Večer bez diplomky", "note": "Jeden večer, kdy se o práci nemluví. Ani slovo.", "file": null},
+    {"id": "r3", "lvl": 6, "title": "Masáž zad", "note": "Po dni u počítače. Dvacet minut, bez řečí.", "file": null},
+    {"id": "r4", "lvl": 8, "title": "Výlet za kapybarami", "note": "Zoo, den volna, nic jiného na programu.", "file": null},
+    {"id": "r5", "lvl": 10, "title": "Večeře, kterou vybereš ty", "note": "Cokoliv. Fakt cokoliv.", "file": null},
+    {"id": "r6", "lvl": 12, "title": "Obhájeno", "note": "Tohle si otevřeš, až to bude celé hotové. Věřím ti.", "file": null},
+    {"id": "r7", "lvl": 17, "title": "Snídaně do postele", "note": "V sobotu. Ty spíš, já vařím.", "file": null},
+    {"id": "r8", "lvl": 19, "title": "Film podle tebe", "note": "Vybereš ho ty a já nebudu remcat. Ani u romantiky.", "file": null},
+    {"id": "r9", "lvl": 21, "title": "Den bez budíku", "note": "Celý den. Žádné plány, žádný seznam.", "file": null},
+    {"id": "r10", "lvl": 23, "title": "Kytka jen tak", "note": "Bez důvodu. To je ten důvod.", "file": null},
+    {"id": "r11", "lvl": 25, "title": "Masáž nohou", "note": "Po tom všem běhání po ateliéru.", "file": null},
+    {"id": "r12", "lvl": 27, "title": "Výlet, kam chceš", "note": "Řekni místo, zbytek zařídím já.", "file": null},
+    {"id": "r13", "lvl": 30, "title": "Ing. arch.", "note": "Tohle si otevřeš, až budeš mít titul. Jsem na tebe hrozně pyšný.", "file": null}
   ]
 }
