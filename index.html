@@ -2546,7 +2546,7 @@ function spaGrantFocus(min){
   const s = spa();
   s.energy += 2 * min; s.yuzu += min; s.total += min; s.t = Date.now();
 }
-let spaKresleno = "";
+let spaKresleno = null;   // null = ještě nikdy nekresleno (prázdná scéna je taky "")
 function renderSpa(){
   const s = spa();
   if (s.daily !== todayKey()) { s.daily = todayKey(); s.energy += 20; s.t = Date.now(); pushState(); }
