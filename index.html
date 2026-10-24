@@ -406,6 +406,27 @@ label.field>span{display:block; margin-bottom:5px}
 .shop-it:disabled{cursor:default}
 .shop-it:not(:disabled):hover{border-color:var(--blade)}
 
+/* fotodeník */
+.diary{display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px}
+.dfig{margin:0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--bg2); padding:0; text-align:left; color:var(--ink); cursor:pointer}
+.dfig .ph{aspect-ratio:1; background:var(--panel2) center/cover no-repeat; display:grid; place-items:center; font-size:11px; color:var(--ink3)}
+.dfig .cap{padding:5px 7px; font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--ink3)}
+.dbig{width:100%; max-height:60vh; object-fit:contain; border-radius:10px; display:block; background:var(--bg2)}
+/* týden v kostce */
+.recap{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-top:14px}
+.recap div{background:var(--bg2); padding:10px 4px; text-align:center}
+.recap b{display:block; font-family:"IBM Plex Mono",monospace; font-size:20px; font-variant-numeric:tabular-nums}
+.recap span{font-family:"IBM Plex Mono",monospace; font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink3)}
+/* příprava na konzultaci */
+.prep{list-style:none; margin:0; padding:0; text-align:left}
+.prep li{display:flex; gap:10px; align-items:center; padding:7px 0; border-top:1px dashed var(--hair); font-size:14px}
+.prep li:first-child{border-top:0}
+.prep li.ok span{color:var(--ink3); text-decoration:line-through}
+.prep .tick{width:22px; height:22px}
+.prep li.ok .tick{background:var(--xp); border-color:transparent}
+.prep li.ok .tick svg{opacity:1; stroke:var(--bg)}
+.mst .n.link{cursor:pointer; text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:3px}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important}
 }
@@ -573,6 +594,18 @@ label.field>span{display:block; margin-bottom:5px}
           </div>
           <div class="calm" id="weekCalm"></div>
           <ul class="quests" id="weekList" style="margin-top:10px"></ul>
+          <button class="mv" id="recapBtn" hidden style="margin-top:10px">minulý týden v kostce</button>
+        </div>
+
+        <div class="panel stack" id="diaryBox">
+          <div class="row">
+            <h2>Fotodeník</h2>
+            <span class="spacer"></span>
+            <span class="eyebrow" id="diaryCount"></span>
+          </div>
+          <p class="muted" style="margin:0; font-size:13.5px" id="diaryHint"></p>
+          <label class="btn primary" style="align-self:flex-start; cursor:pointer">Přidat fotku<input type="file" accept="image/*" id="diaryFile" hidden></label>
+          <div class="diary" id="diaryGrid"></div>
         </div>
 
         <div class="panel stack">
@@ -1436,7 +1469,8 @@ function render(){
   state.xp = totalXp();
   renderHeader(); renderActs(); renderBoss(); renderQuests(); renderStats(); renderLog(); renderToday();
   renderCapys(); renderChests(); renderActEditor(); renderBackup(); renderSchedule(); renderStart();
-  renderMsts(); focusTick(); renderSpa();
+  renderMsts(); focusTick(); renderSpa(); renderDiary();
+  { const b = planBlocks(); $("recapBtn").hidden = !(b.length && curBlockIdx(b) > 0); }
 }
 
 function renderHeader(){
@@ -1588,6 +1622,12 @@ function renderToday(){
         ? `<div class="muted" style="font-size:13px; margin-top:4px">Tenhle blok: ${st.done.length} z ${st.qs.length} hotovo, zbývá ${left}.</div>`
         : `<div class="muted" style="font-size:13px; margin-top:4px">Tenhle blok máš celý splněný.</div>`;
     }
+  }
+  const blizka = msts().find(m => { const d = dniDo(m.date); return d !== null && d >= 0 && d <= 3; });
+  if (blizka) {
+    const zbyva = (blizka.prep || []).filter(p => !p.done).length;
+    const d = dniDo(blizka.date);
+    weekLine += `<div class="muted" style="font-size:13px; margin-top:4px">${esc(blizka.title)} ${d === 0 ? "je dneska" : "za " + d + " " + pl(d, "den", "dny", "dní")}${zbyva ? " — připravit zbývá " + zbyva + "." : (blizka.prep || []).length ? " — máš připraveno." : "."}</div>`;
   }
   $("todayBox").innerHTML = (doneToday > 0
     ? `<div class="eyebrow">Dnes</div><div style="font-weight:700; margin-top:2px">Dneska už ${doneToday}×. Série ${s} ${s === 1 ? "den" : s < 5 ? "dny" : "dní"}.</div><div class="muted" style="font-size:13px; margin-top:3px">Zbytek dne je tvůj, klidně to zavři.</div>`
@@ -2122,6 +2162,15 @@ function mergeState(remote, local){
   const re = { ...(older.rewardEdits || {}) };
   Object.entries(newer.rewardEdits || {}).forEach(([id, e]) => { if (!re[id] || (e.t || 0) >= (re[id].t || 0)) re[id] = e; });
   out.rewardEdits = re;
+  // fotodeník: sjednotit podle id
+  const dById = {};
+  [...(older.diary || []), ...(newer.diary || [])].forEach(e => { dById[e.id] = e; });
+  [...(older.diary || []), ...(newer.diary || [])].forEach(e => { if ((e.t2 || e.t || 0) >= (dById[e.id].t2 || dById[e.id].t || 0)) dById[e.id] = e; });
+  if (Object.keys(dById).length) out.diary = Object.values(dById);
+  // důležitá data: u každého vyhrává novější úprava
+  const mById = {};
+  [...(older.milestones || []), ...(newer.milestones || [])].forEach(m => { if (!mById[m.id] || (m.t || 0) >= (mById[m.id].t || 0)) mById[m.id] = m; });
+  if (Object.keys(mById).length) out.milestones = Object.values(mById);
   // lázně: novější stav vyhrává
   const nsp = newer.spa, osp = older.spa;
   out.spa = !nsp ? osp : !osp ? nsp : ((nsp.t || 0) >= (osp.t || 0) ? nsp : osp);
@@ -2469,11 +2518,13 @@ function showSos(){
    ================================================================== */
 function msts(){
   if (!Array.isArray(state.milestones)) state.milestones = [];
-  return [...state.milestones].sort((a, b) => a.date.localeCompare(b.date));
+  return state.milestones.filter(m => !m.deleted).sort((a, b) => a.date.localeCompare(b.date));
 }
+/** Kolik kalendářních dní zbývá (zítra = 1, dnes = 0, včera = -1). */
 function dniDo(datum){
-  const d = new Date(datum + "T23:59:59");
-  return isNaN(d) ? null : Math.ceil((d - Date.now()) / DAY);
+  const d = new Date(datum + "T12:00:00");
+  if (isNaN(d)) return null;
+  return Math.round((midnight(d) - midnight(new Date())) / DAY);
 }
 function renderMsts(){
   const list = msts();
@@ -2482,15 +2533,20 @@ function renderMsts(){
     const pryc = dn !== null && dn < 0;
     return `<div class="mst${pryc ? " gone" : (dn !== null && dn <= 7 ? " soon" : "")}">
       <span class="d">${new Date(m.date + "T12:00:00").toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric" })}</span>
-      <span><span class="n">${esc(m.title)}</span>
-        <span class="dim" style="font-size:11.5px; display:block">${pryc ? "už proběhlo" : dn === 0 ? "dneska" : "za " + dn + " " + pl(dn, "den", "dny", "dní")}</span></span>
+      <span><span class="n link" data-mopen="${m.id}" role="button" tabindex="0">${esc(m.title)}</span>
+        <span class="dim" style="font-size:11.5px; display:block">${pryc ? "už proběhlo" : dn === 0 ? "dneska" : "za " + dn + " " + pl(dn, "den", "dny", "dní")}${prepLabel(m)}</span></span>
       <button class="q-del" data-mdel="${m.id}" aria-label="Smazat ${esc(m.title)}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
       </button>
     </div>`;
   }).join("") : `<p class="dim" style="margin:0; font-size:13px">Zatím tu nic není. Přidej si konzultace a odevzdávky, ať tě nepřekvapí.</p>`;
+  $("mstList").querySelectorAll("[data-mopen]").forEach(b => {
+    b.addEventListener("click", () => editMst(b.dataset.mopen));
+    b.addEventListener("keydown", e => { if (e.key === "Enter") editMst(b.dataset.mopen); });
+  });
   $("mstList").querySelectorAll("[data-mdel]").forEach(b => b.addEventListener("click", () => {
-    state.milestones = state.milestones.filter(m => m.id !== b.dataset.mdel);
+    const m = state.milestones.find(x => x.id === b.dataset.mdel);
+    if (m) { m.deleted = true; m.t = Date.now(); }
     render(); pushState();
   }));
 
@@ -2501,10 +2557,199 @@ function renderMsts(){
     if (dalsi) {
       const dn = dniDo(dalsi.date);
       box.innerHTML = `<span class="eyebrow">Nejbližší</span><div style="font-weight:700; margin-top:2px">${esc(dalsi.title)}</div>
-        <div class="muted" style="font-size:13px">${dn === 0 ? "Dneska." : "Za " + dn + " " + pl(dn, "den", "dny", "dní") + ", " + new Date(dalsi.date + "T12:00:00").toLocaleDateString("cs-CZ", { day: "numeric", month: "long" }) + "."}</div>`;
+        <div class="muted" style="font-size:13px">${dn === 0 ? "Dneska." : "Za " + dn + " " + pl(dn, "den", "dny", "dní") + ", " + new Date(dalsi.date + "T12:00:00").toLocaleDateString("cs-CZ", { day: "numeric", month: "long" }) + "."}${prepLabel(dalsi)}</div>
+        <button class="mv" id="nextMstPrep" style="margin-top:6px">připravit se</button>`;
+      $("nextMstPrep").addEventListener("click", () => editMst(dalsi.id));
     }
   }
 }
+
+/* ==================================================================
+   PŘÍPRAVA NA KONZULTACI — co přinést, na co se zeptat, co řekl vedoucí
+   ================================================================== */
+const PREP_VYCHOZI = ["Vytisknout aktuální výkresy", "Sepsat otázky na vedoucího", "Vzít model / skici", "Poznamenat, co se změnilo od minula"];
+function prepLabel(m){
+  const p = Array.isArray(m.prep) ? m.prep : [];
+  if (!p.length) return "";
+  return " · připraveno " + p.filter(x => x.done).length + "/" + p.length;
+}
+function editMst(id){
+  const m = (state.milestones || []).find(x => x.id === id); if (!m) return;
+  if (!Array.isArray(m.prep)) m.prep = [];
+  const pryc = (dniDo(m.date) ?? 0) < 0;
+  const o = modal("");
+  const box = o.querySelector(".modal");
+  const draw = () => {
+    box.innerHTML = `<h2>${esc(m.title)}</h2>
+      <p class="muted" style="font-size:13px; margin:4px 0 0">${new Date(m.date + "T12:00:00").toLocaleDateString("cs-CZ", { weekday: "long", day: "numeric", month: "long" })}</p>
+      <div class="eyebrow" style="margin-top:14px; text-align:left">Co připravit</div>
+      <ul class="prep" style="margin-top:4px">${m.prep.map(p => `<li class="${p.done ? "ok" : ""}">
+        <button class="tick" data-pt="${p.id}" aria-label="${p.done ? "Vrátit" : "Hotovo"}: ${esc(p.t)}"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M4 12l6 6L20 6"/></svg></button>
+        <span style="flex:1">${esc(p.t)}</span>
+        <button class="q-del" data-px="${p.id}" aria-label="Smazat"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </li>`).join("") || `<li class="dim" style="font-size:13px">Zatím nic. Přidej si, co chceš mít s sebou.</li>`}</ul>
+      <form class="row" id="ppAdd" style="gap:8px; margin-top:8px">
+        <input type="text" id="ppTxt" placeholder="Přinést / zeptat se…" aria-label="Nová položka">
+        <button class="btn small" type="submit">+</button>
+      </form>
+      ${m.prep.length ? "" : `<button class="mv" id="ppDefault" style="margin-top:8px">vložit obvyklé věci</button>`}
+      <label class="field" style="margin-top:14px; text-align:left"><span class="eyebrow">${pryc ? "Co řekl vedoucí" : "Poznámky (po konzultaci sem napiš, co řekl)"}</span>
+        <textarea id="ppAfter" style="min-height:80px" placeholder="Co pochválil, co předělat, na co se zaměřit…">${esc(m.after || "")}</textarea></label>
+      <button class="btn primary" id="ppClose" style="margin-top:14px; width:100%">Hotovo</button>`;
+    const ulozit = () => { m.after = box.querySelector("#ppAfter").value.trim().slice(0, 1500); m.t = Date.now(); pushState(); };
+    box.querySelectorAll("[data-pt]").forEach(b => b.addEventListener("click", () => {
+      ulozit(); const p = m.prep.find(x => x.id === b.dataset.pt); if (p) p.done = !p.done; m.t = Date.now(); pushState(); draw();
+    }));
+    box.querySelectorAll("[data-px]").forEach(b => b.addEventListener("click", () => {
+      ulozit(); m.prep = m.prep.filter(x => x.id !== b.dataset.px); m.t = Date.now(); pushState(); draw();
+    }));
+    box.querySelector("#ppAdd").addEventListener("submit", e => {
+      e.preventDefault(); ulozit();
+      const t = box.querySelector("#ppTxt").value.trim(); if (!t) return;
+      m.prep.push({ id: uid(), t: t.slice(0, 120), done: false }); m.t = Date.now(); pushState(); draw();
+      setTimeout(() => box.querySelector("#ppTxt")?.focus(), 30);
+    });
+    const d = box.querySelector("#ppDefault");
+    if (d) d.addEventListener("click", () => { ulozit(); m.prep = PREP_VYCHOZI.map(t => ({ id: uid(), t, done: false })); m.t = Date.now(); pushState(); draw(); });
+    box.querySelector("#ppClose").addEventListener("click", () => { ulozit(); o.remove(); render(); });
+  };
+  draw();
+}
+
+/* ==================================================================
+   FOTODENÍK — jednou týdně fotka rozpracované práce
+   ================================================================== */
+function diary(){ if (!Array.isArray(state.diary)) state.diary = []; return state.diary; }
+const diaryImgs = {}, diaryLoading = {}, diaryFailed = {};
+async function sidePut(suffix, payload){
+  const c = syncCfg(), h = { authorization: "Bearer " + c.token };
+  const u = `${c.base}/api/state?room=${encodeURIComponent(c.room + suffix)}`;
+  let rev = 0;
+  const g = await fetch(u, { headers: h });
+  if (g.ok) rev = (await g.json()).rev;
+  const p = await fetch(u, { method: "PUT", headers: { ...h, "content-type": "application/json" }, body: JSON.stringify({ rev, doc: payload }) });
+  return p.ok;
+}
+async function sideGet(suffix){
+  const c = syncCfg();
+  const r = await fetch(`${c.base}/api/state?room=${encodeURIComponent(c.room + suffix)}`, { headers: { authorization: "Bearer " + c.token } });
+  if (!r.ok) return null;
+  return (await r.json())?.doc || null;
+}
+function loadDiaryImg(e){
+  if (diaryImgs[e.id] || diaryLoading[e.id] || diaryFailed[e.id]) return;
+  diaryLoading[e.id] = true;
+  (async () => {
+    try {
+      const cached = await idbGet("diary:" + e.id);
+      if (cached) diaryImgs[e.id] = cached;
+      else if (e.synced && syncOn()) {
+        const d = await sideGet("-d-" + e.id);
+        if (d && d.img) { diaryImgs[e.id] = d.img; idbPut("diary:" + e.id, d.img); }
+        else diaryFailed[e.id] = true;
+      } else diaryFailed[e.id] = true;
+    } catch(err){ diaryFailed[e.id] = true; }
+    diaryLoading[e.id] = false;
+    renderDiary();
+  })();
+}
+function renderDiary(){
+  const list = diary().filter(e => !e.deleted).sort((a, b) => b.t - a.t);
+  const blocks = planBlocks();
+  const cur = blocks.length ? blocks[curBlockIdx(blocks)] : null;
+  const tentoTyden = cur ? list.some(e => e.t >= cur.from.getTime() && e.t <= cur.to.getTime()) : list.some(e => Date.now() - e.t < 7 * DAY);
+  $("diaryCount").textContent = list.length ? list.length + " " + pl(list.length, "fotka", "fotky", "fotek") : "";
+  $("diaryHint").textContent = tentoTyden
+    ? "Tenhle týden už fotku máš. Za měsíc se sem podíváš a nebudeš věřit, kde jsi začínala."
+    : list.length ? "Tenhle týden ještě nic. Vyfoť, jak to teď vypadá — klidně rozdělaný výkres na monitoru."
+                  : "Jednou týdně si vyfoť, jak práce vypadá. Model, skica, obrazovka. Poskládá se ti z toho, jak diplomka rostla.";
+  $("diaryGrid").innerHTML = list.map(e => {
+    const img = diaryImgs[e.id];
+    if (!img) loadDiaryImg(e);
+    return `<button class="dfig" data-dopen="${e.id}">
+      <div class="ph" style="${img ? `background-image:url('${img}')` : ""}">${img ? "" : diaryFailed[e.id] ? "fotka chybí" : "…"}</div>
+      <div class="cap">${new Date(e.t).toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric" })}${e.note ? " · " + esc(e.note.slice(0, 22)) : ""}</div>
+    </button>`;
+  }).join("");
+  $("diaryGrid").querySelectorAll("[data-dopen]").forEach(b => b.addEventListener("click", () => openDiary(b.dataset.dopen)));
+}
+function openDiary(id){
+  const e = diary().find(x => x.id === id); if (!e) return;
+  const img = diaryImgs[id];
+  const o = modal(`${img ? `<img class="dbig" src="${img}" alt="Fotka z ${new Date(e.t).toLocaleDateString("cs-CZ")}">` : ""}
+    <div class="eyebrow" style="margin-top:12px">${new Date(e.t).toLocaleDateString("cs-CZ", { weekday: "long", day: "numeric", month: "long" })}</div>
+    ${e.note ? `<p style="margin:6px 0 0; font-size:14px">${esc(e.note)}</p>` : ""}
+    <div class="row" style="margin-top:14px"><button class="btn ghost" id="dDel" style="flex:1; color:var(--hp)">Smazat</button><button class="btn primary" data-close style="flex:2">Zavřít</button></div>`);
+  o.querySelector("#dDel").addEventListener("click", () => {
+    e.deleted = true; e.t2 = Date.now();
+    pushState(); o.remove(); renderDiary();
+  });
+}
+async function addDiary(file){
+  if (!file) return;
+  let data;
+  try { data = await compressImage(file, 1200, 0.75); } catch(e){ toast("Tuhle fotku se nepodařilo načíst."); return; }
+  const o = modal(`<img class="dbig" src="${data}" alt="Nová fotka">
+    <label class="field" style="margin-top:12px; text-align:left"><span class="eyebrow">Pár slov (nepovinné)</span>
+      <input type="text" id="dNote" placeholder="Hotový půdorys 1.NP" maxlength="120"></label>
+    <div class="row" style="margin-top:14px"><button class="btn ghost" data-close style="flex:1">Zpět</button><button class="btn primary" id="dSave" style="flex:2">Uložit do deníku</button></div>`);
+  o.querySelector("#dSave").addEventListener("click", async () => {
+    const e = { id: uid(), t: Date.now(), note: o.querySelector("#dNote").value.trim().slice(0, 120), synced: false };
+    o.remove();
+    diaryImgs[e.id] = data; idbPut("diary:" + e.id, data);
+    if (syncOn()) { try { e.synced = await sidePut("-d-" + e.id, { img: data, t: e.t }); } catch(err){} }
+    diary().push(e);
+    spaGrantFocus(5);
+    pushState(); render();
+    toast(e.synced || !syncOn() ? "Uloženo. Tohle je přesně ono." : "Uloženo jen tady — server teď neodpověděl.");
+  });
+}
+$("diaryFile").addEventListener("change", e => { addDiary(e.target.files[0]); e.target.value = ""; });
+
+/* ==================================================================
+   TÝDEN V KOSTCE — jednou za blok krátké ohlédnutí
+   ================================================================== */
+function blockRecap(b){
+  const od = b.from.getTime(), do_ = b.to.getTime();
+  const hotove = state.quests.filter(q => q.done && q.doneAt >= od && q.doneAt <= do_);
+  const planovane = state.quests.filter(q => planCfg().assign[q.id] === b.i);
+  const minuty = Object.entries(focusCfg().byDay).filter(([d]) => { const t = new Date(d + "T12:00:00").getTime(); return t >= od && t <= do_; }).reduce((a, [, m]) => a + m, 0);
+  const fotky = diary().filter(e => !e.deleted && e.t >= od && e.t <= do_).length;
+  return { hotove, planovane, xp: hotove.reduce((a, q) => a + qxp(q), 0), minuty, fotky,
+           splneno: planovane.length ? planovane.filter(q => q.done).length / planovane.length : (hotove.length ? 1 : 0) };
+}
+function recapVeta(r){
+  if (!r.hotove.length) return "Tenhle týden to nešlo a to je v pořádku. Nový začíná teď a nic z minulého ti nevisí nad hlavou.";
+  if (r.splneno >= 1) return "Všechno, co sis na týden dala, máš hotové. Dej si za to něco hezkého, zasloužíš si to.";
+  if (r.splneno >= 0.6) return "Dobrej týden. Fakt dobrej. Mám radost, když tě vidím takhle jet.";
+  return "Udělala jsi kus práce, i když ne všechno. Pořád je to kus, který minulý týden neexistoval.";
+}
+function showRecap(idx){
+  const blocks = planBlocks(); const b = blocks[idx]; if (!b) return;
+  const r = blockRecap(b);
+  modal(`<div class="capyart">${capyArt(CAPYS[r.hotove.length ? 13 : 14])}</div>
+    <div class="eyebrow" style="margin-top:8px">Týden ${dm(b.from)} – ${dm(b.to)}</div>
+    <h2 style="margin-top:6px">Týden v kostce</h2>
+    <div class="recap">
+      <div><b>${r.hotove.length}</b><span>úkolů</span></div>
+      <div><b>${r.xp}</b><span>XP</span></div>
+      <div><b>${r.minuty >= 60 ? (r.minuty / 60).toFixed(1).replace(".", ",") + " h" : r.minuty + " m"}</b><span>u práce</span></div>
+    </div>
+    ${r.planovane.length ? `<p class="dim" style="font-size:12.5px; margin:8px 0 0">Z plánu na ten týden: ${r.planovane.filter(q => q.done).length} z ${r.planovane.length}${r.fotky ? " · fotek v deníku: " + r.fotky : ""}</p>` : ""}
+    <p style="font-size:14.5px; line-height:1.5; margin:14px 0 0">${esc(recapVeta(r))}</p>
+    <p class="dim" style="margin:6px 0 0; font-size:13px">— K.</p>
+    <button class="btn primary" data-close style="margin-top:16px; width:100%">Jdeme na další</button>`);
+}
+/** Po začátku nového bloku jednou ukáže, jak dopadl ten minulý. */
+function maybeRecap(){
+  const blocks = planBlocks(); if (!blocks.length) return;
+  const cur = curBlockIdx(blocks); if (cur < 1) return;
+  const klic = dayKey(blocks[cur - 1].from);
+  if (state.lastRecap === klic || document.querySelector(".overlay")) return;
+  state.lastRecap = klic; pushState();
+  showRecap(cur - 1);
+}
+$("recapBtn").addEventListener("click", () => { const b = planBlocks(); const c = curBlockIdx(b); if (c > 0) showRecap(c - 1); });
 
 /* ==================================================================
    KAPYBAŘÍ LÁZNĚ — clicker, který se nedá prohrát na úkor diplomky:
@@ -2770,7 +3015,7 @@ $("mstAdd").addEventListener("submit", e => {
   const d = $("mstDate").value, t = $("mstName").value.trim();
   if (!d || !t) { toast("Vyplň datum i co to je."); return; }
   if (!Array.isArray(state.milestones)) state.milestones = [];
-  state.milestones.push({ id: uid(), date: d, title: t.slice(0, 80) });
+  state.milestones.push({ id: uid(), date: d, title: t.slice(0, 80), t: Date.now() });
   $("mstDate").value = ""; $("mstName").value = "";
   render(); pushState();
 });
@@ -2871,6 +3116,7 @@ function fillProfileForm(){
 (async () => {
   const pripojeno = await handlePairLink();
   if (!lsGet("capy.seenIntro", false)) showIntro();
+  else setTimeout(maybeRecap, 700);
   renderStart();
 })();
 
